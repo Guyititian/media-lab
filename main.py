@@ -2,8 +2,8 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 import os
 import uuid
-import imageio_ffmpeg
 import subprocess
+import imageio_ffmpeg
 
 app = FastAPI()
 
@@ -21,20 +21,20 @@ def root():
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
-    # Save uploaded file
     job_id = str(uuid.uuid4())
+
     input_path = os.path.join(UPLOAD_DIR, f"{job_id}_{file.filename}")
     output_path = os.path.join(OUTPUT_DIR, f"{job_id}.gif")
 
+    # Save uploaded file
     contents = await file.read()
-
     with open(input_path, "wb") as f:
         f.write(contents)
 
-    # Get ffmpeg path from imageio-ffmpeg
+    # Get ffmpeg path (works on Render)
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 
-    # Convert video → GIF
+    # Conversion command
     command = [
         ffmpeg_path,
         "-y",
@@ -42,10 +42,34 @@ async def upload(file: UploadFile = File(...)):
         input_path,
         "-vf",
         "fps=12,scale=480:-1:flags=lanczos",
+        "-loop",
+        "0",
         output_path
     ]
 
-    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Run ffmpeg
+    result = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    # DEBUG LOGS (very important)
+    print("====== FFMPEG COMMAND ======")
+    print(" ".join(command))
+    print("====== STDOUT ======")
+    print(result.stdout)
+    print("====== STDERR ======")
+    print(result.stderr)
+
+    # If conversion failed
+    if not os.path.exists(output_path):
+        return {
+            "job_id": job_id,
+            "error": "conversion failed",
+            "ffmpeg_error": result.stderr[-1000:]
+        }
 
     return {
         "job_id": job_id,
