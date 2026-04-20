@@ -4,6 +4,7 @@ import os
 import uuid
 import subprocess
 import imageio_ffmpeg
+import time
 
 app = FastAPI()
 
@@ -27,7 +28,6 @@ async def upload(file: UploadFile = File(...)):
     palette_path = os.path.join(OUTPUT_DIR, f"{job_id}_palette.png")
     output_path = os.path.join(OUTPUT_DIR, f"{job_id}.gif")
 
-    # Save uploaded file
     contents = await file.read()
     with open(input_path, "wb") as f:
         f.write(contents)
@@ -35,7 +35,7 @@ async def upload(file: UploadFile = File(...)):
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 
     # STEP 1: Generate palette
-    palette_command = [
+    subprocess.run([
         ffmpeg_path,
         "-y",
         "-i",
@@ -43,19 +43,10 @@ async def upload(file: UploadFile = File(...)):
         "-vf",
         "fps=15,scale=480:-1:flags=lanczos,palettegen",
         palette_path
-    ]
+    ])
 
-    palette_result = subprocess.run(
-        palette_command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-
-    print("PALETTE STDERR:", palette_result.stderr)
-
-    # STEP 2: Use palette to create GIF
-    gif_command = [
+    # STEP 2: Generate GIF
+    subprocess.run([
         ffmpeg_path,
         "-y",
         "-i",
@@ -67,25 +58,20 @@ async def upload(file: UploadFile = File(...)):
         "-loop",
         "0",
         output_path
-    ]
+    ])
 
-    gif_result = subprocess.run(
-        gif_command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+    # 🔥 WAIT until file is actually written
+    timeout = 15  # seconds
+    waited = 0
 
-    print("GIF STDERR:", gif_result.stderr)
-
-    # Check output
-    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-        return {
-            "job_id": job_id,
-            "error": "conversion failed",
-            "palette_error": palette_result.stderr[-500:],
-            "gif_error": gif_result.stderr[-500:]
-        }
+    while not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+        time.sleep(1)
+        waited += 1
+        if waited >= timeout:
+            return {
+                "job_id": job_id,
+                "error": "timeout waiting for gif"
+            }
 
     return {
         "job_id": job_id,
