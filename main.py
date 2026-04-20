@@ -1,18 +1,12 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
-import os
 import uuid
 import subprocess
 import imageio_ffmpeg
-import time
+import tempfile
+import os
 
 app = FastAPI()
-
-UPLOAD_DIR = "uploads"
-OUTPUT_DIR = "outputs"
-
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 @app.get("/")
@@ -24,54 +18,52 @@ def root():
 async def upload(file: UploadFile = File(...)):
     job_id = str(uuid.uuid4())
 
-    input_path = os.path.join(UPLOAD_DIR, f"{job_id}_{file.filename}")
-    palette_path = os.path.join(OUTPUT_DIR, f"{job_id}_palette.png")
-    output_path = os.path.join(OUTPUT_DIR, f"{job_id}.gif")
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
-    contents = await file.read()
-    with open(input_path, "wb") as f:
-        f.write(contents)
+    # 🔥 IMPORTANT: use true temp directory (Render-safe)
+    with tempfile.TemporaryDirectory() as tmp:
 
-    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+        input_path = os.path.join(tmp, "input.mp4")
+        palette_path = os.path.join(tmp, "palette.png")
+        output_path = os.path.join(tmp, "output.gif")
 
-    # STEP 1: Generate palette
-    subprocess.run([
-        ffmpeg_path,
-        "-y",
-        "-i",
-        input_path,
-        "-vf",
-        "fps=15,scale=480:-1:flags=lanczos,palettegen",
-        palette_path
-    ])
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
 
-    # STEP 2: Generate GIF
-    subprocess.run([
-        ffmpeg_path,
-        "-y",
-        "-i",
-        input_path,
-        "-i",
-        palette_path,
-        "-lavfi",
-        "fps=15,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse",
-        "-loop",
-        "0",
-        output_path
-    ])
+        # palette step
+        subprocess.run([
+            ffmpeg,
+            "-y",
+            "-i",
+            input_path,
+            "-vf",
+            "fps=15,scale=480:-1:flags=lanczos,palettegen",
+            palette_path
+        ])
 
-    # 🔥 WAIT until file is actually written
-    timeout = 15  # seconds
-    waited = 0
+        # gif step
+        subprocess.run([
+            ffmpeg,
+            "-y",
+            "-i",
+            input_path,
+            "-i",
+            palette_path,
+            "-lavfi",
+            "fps=15,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse",
+            "-loop",
+            "0",
+            output_path
+        ])
 
-    while not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-        time.sleep(1)
-        waited += 1
-        if waited >= timeout:
-            return {
-                "job_id": job_id,
-                "error": "timeout waiting for gif"
-            }
+        # 🔥 read file into memory before temp folder disappears
+        with open(output_path, "rb") as f:
+            gif_bytes = f.read()
+
+    # store in global memory (safe for small MVP testing)
+    app.state.storage = getattr(app.state, "storage", {})
+    app.state.storage[job_id] = gif_bytes
 
     return {
         "job_id": job_id,
@@ -81,9 +73,14 @@ async def upload(file: UploadFile = File(...)):
 
 @app.get("/download/{job_id}")
 def download(job_id: str):
-    path = os.path.join(OUTPUT_DIR, f"{job_id}.gif")
+    storage = getattr(app.state, "storage", {})
 
-    if not os.path.exists(path):
+    if job_id not in storage:
         return {"error": "file not ready"}
+
+    path = f"/tmp/{job_id}.gif"
+
+    with open(path, "wb") as f:
+        f.write(storage[job_id])
 
     return FileResponse(path, media_type="image/gif", filename="output.gif")
