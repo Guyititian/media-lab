@@ -25,7 +25,7 @@ def build_gif(input_path, output_path):
         # palette generation (stable, not over-analyzed)
         "split[s0][s1];"
         "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-        "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle"
     )
 
     command = [
