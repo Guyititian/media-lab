@@ -14,35 +14,32 @@ PRESETS = {
         )
     },
 
-    # 🟢 SAFE HIGH QUALITY (what Render can handle)
     "fluid_motion_v1": {
-        "label": "Fluid Motion (Safe)",
-        "description": "Smooth motion with good color, optimized for stability.",
+        "label": "Fluid Motion (Optimized)",
+        "description": "Balanced smoothness with improved sharpness and vivid color.",
         "vf": (
+            # keep resolution stable (avoid memory spikes)
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "eq=contrast=1.10:saturation=1.25:brightness=0.01,"
+
+            # 🔥 stronger perceived sharpness (key improvement)
+            "unsharp=5:5:1.0:3:3:0.5,"
+
+            # 🔥 color improvement without overblowing artifacts
+            "eq=contrast=1.12:saturation=1.35:brightness=0.01,"
+
+            # IMPORTANT: locked to 48fps (your conclusion was correct)
             "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:me_mode=bidir,"
-            "format=yuv420p,"
-            "hqdn3d=1.0:1.0:3:3,"
+
+            # better gradient preservation (helps text/logos)
+            "format=yuv444p,"
+
+            # light denoise only (avoid softening edges)
+            "hqdn3d=0.8:0.8:2:2,"
+
+            # improved palette handling for color richness
             "split[s0][s1];"
             "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
             "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
-        )
-    },
-
-    # 🔥 FULL QUALITY MODE (your original “best output target”)
-    "fluid_motion_heavy": {
-        "label": "Fluid Motion (High Quality)",
-        "description": "Maximum smoothness and color fidelity. May be memory intensive.",
-        "vf": (
-            "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "eq=contrast=1.12:saturation=1.30:brightness=0.01,"
-            "minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
-            "format=yuv444p,"
-            "hqdn3d=1.0:1.0:4:4,"
-            "split[s0][s1];"
-            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-            "[s1][p]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle"
         )
     }
 }
