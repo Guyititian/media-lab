@@ -10,22 +10,22 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE QUALITY ENGINE (v3)
+# QUALITY ENGINE (v4 REALISTIC)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # clean scaling first (no overprocessing)
-        "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
+        # preserve more source detail before anything else
+        "scale=720:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
         
-        # fixed FPS ONLY (remove interpolation completely)
+        # keep motion stable (NO interpolation artifacts)
         "fps=24,"
         
-        # palette generation (stable, not over-analyzed)
+        # higher-quality palette generation (less destructive than before)
         "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-        "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
+        "[s0]palettegen=max_colors=256:reserve_transparent=0:stats_mode=single[p];"
+        "[s1][p]paletteuse=dither=none"
     )
 
     command = [
@@ -46,7 +46,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v3 stable running"}
+    return {"status": "media-lab v4 stable quality pipeline"}
 
 
 @app.post("/upload")
