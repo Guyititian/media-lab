@@ -15,31 +15,33 @@ PRESETS = {
     },
 
     "fluid_motion_v1": {
-        "label": "Fluid Motion (Palette Optimized)",
-        "description": "Improved color stability and sharper perceived edges with optimized palette generation.",
+        "label": "Fluid Motion (Stabilized Sharp)",
+        "description": "Sharp edges with controlled color and reduced background artifacts.",
         "vf": (
-            # stable geometry (no change)
+            # stable scaling
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
 
-            # keep your proven sharpness + color base
+            # keep the sharpness gain (this was good)
             "unsharp=5:5:1.0:3:3:0.5,"
-            "eq=contrast=1.12:saturation=1.35:brightness=0.01,"
 
-            # locked motion (correct decision you made)
+            # slightly reduced saturation to prevent palette overflow artifacts
+            "eq=contrast=1.12:saturation=1.28:brightness=0.01,"
+
+            # keep correct motion ceiling
             "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:me_mode=bidir,"
 
-            # color preservation baseline
+            # preserve color depth
             "format=yuv444p,"
 
-            # lighter denoise to avoid “muddying” edges
-            "hqdn3d=0.7:0.7:2:2,"
+            # gentle denoise to reduce background instability
+            "hqdn3d=0.9:0.9:2:2,"
 
-            # 🔥 KEY CHANGE: better palette generation strategy
+            # 🔥 FIX: back to stable palette generation
             "split[s0][s1];"
-            "[s0]palettegen=max_colors=256:stats_mode=single:reserve_transparent=0:stats_mode=diff[p];"
+            "[s0]palettegen=max_colors=256:stats_mode=diff:reserve_transparent=0[p];"
 
-            # 🔥 KEY CHANGE: improved dithering behavior (less shimmer)
-            "[s1][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle:bayer_scale=0"
+            # 🔥 FIX: return to Bayer (more stable, less artifacting)
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=1"
         )
     }
 }
