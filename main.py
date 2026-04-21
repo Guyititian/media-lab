@@ -10,31 +10,39 @@ app = FastAPI()
 
 
 # ----------------------------
-# QUALITY ENGINE (v4 REALISTIC)
+# MEDIA-LAB GIF ENGINE (v6 stable)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # preserve more source detail before anything else
-        "scale=720:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
+        # preserve detail BEFORE compression
+        "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
         
-        # keep motion stable (NO interpolation artifacts)
+        # stable playback baseline
         "fps=24,"
         
-        # higher-quality palette generation (less destructive than before)
+        # palette tuned for better color retention (greens/saturation)
         "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:reserve_transparent=0:stats_mode=single[p];"
-        "[s1][p]paletteuse=dither=none"
+        "[s0]palettegen=max_colors=256:stats_mode=full:reserve_transparent=0[p];"
+        "[s1][p]paletteuse=dither=floyd_steinberg:bayer_scale=1"
     )
 
     command = [
         ffmpeg,
         "-y",
         "-i", input_path,
+
+        # filter graph
         "-vf", vf,
+
+        # normalize playback speed across devices
+        "-r", "24",
+        "-vsync", "0",
+
+        # loop forever (GIF standard behavior)
         "-loop", "0",
-        "-fs", "8M",
+
         output_path
     ]
 
@@ -46,7 +54,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v4 stable quality pipeline"}
+    return {"status": "media-lab v6 stable GIF engine running"}
 
 
 @app.post("/upload")
@@ -57,18 +65,22 @@ async def upload(file: UploadFile = File(...)):
         input_path = os.path.join(tmp, "input.mp4")
         output_path = os.path.join(tmp, "output.gif")
 
+        # save upload
         contents = await file.read()
         with open(input_path, "wb") as f:
             f.write(contents)
 
+        # generate gif
         build_gif(input_path, output_path)
 
-        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+        # safety check
+        if not os.path.exists(output_path) or os.path.getsize(output_path) < 1000:
             return {"job_id": job_id, "error": "conversion failed"}
 
         with open(output_path, "rb") as f:
             gif_data = f.read()
 
+    # in-memory storage (MVP safe)
     app.state.storage = getattr(app.state, "storage", {})
     app.state.storage[job_id] = gif_data
 
