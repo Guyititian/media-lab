@@ -10,19 +10,14 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE GIF ENGINE (SAFE COLOR VERSION)
+# STABLE GIF ENGINE (FFmpeg 7 FIXED)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # safe scaling only (no risky color ops yet)
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
-
-        # stable FPS baseline
         "fps=24,"
-
-        # proper palette pipeline ONLY (safe + standard)
         "split[s0][s1];"
         "[s0]palettegen=stats_mode=diff:max_colors=256[p];"
         "[s1][p]paletteuse=dither=floyd_steinberg"
@@ -35,8 +30,8 @@ def build_gif(input_path, output_path):
 
         "-vf", vf,
 
-        "-r", "24",
-        "-vsync", "0",
+        # ✅ FIX: modern FFmpeg timing mode (replaces -r + -vsync conflict)
+        "-fps_mode", "cfr",
 
         "-loop", "0",
 
@@ -50,7 +45,6 @@ def build_gif(input_path, output_path):
         text=True
     )
 
-    # IMPORTANT: surface real ffmpeg errors for debugging
     if result.returncode != 0:
         raise RuntimeError(result.stderr)
 
@@ -60,8 +54,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab stable gif engine (safe mode)"}
-
+    return {"status": "media-lab ffmpeg7 stable fix"}
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
@@ -81,7 +74,7 @@ async def upload(file: UploadFile = File(...)):
             return {"job_id": job_id, "error": str(e)}
 
         if not os.path.exists(output_path) or os.path.getsize(output_path) < 1000:
-            return {"job_id": job_id, "error": "conversion produced empty GIF"}
+            return {"job_id": job_id, "error": "empty output"}
 
         with open(output_path, "rb") as f:
             gif_data = f.read()
