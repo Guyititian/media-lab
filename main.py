@@ -10,25 +10,22 @@ app = FastAPI()
 
 
 # ----------------------------
-# GIF ENGINE (stable v3 + improved color)
+# STABLE GIF ENGINE (SAFE COLOR VERSION)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # preserve image detail first
+        # safe scaling only (no risky color ops yet)
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
 
-        # color correction BEFORE quantization (this is the key change)
-        "eq=contrast=1.08:saturation=1.15:gamma=1.02,"
-
-        # stable frame rate (kept from your working version)
+        # stable FPS baseline
         "fps=24,"
 
-        # palette pipeline (improved sampling for better greens & gradients)
+        # proper palette pipeline ONLY (safe + standard)
         "split[s0][s1];"
-        "[s0]palettegen=stats_mode=diff:max_colors=256:reserve_transparent=0[p];"
-        "[s1][p]paletteuse=dither=floyd_steinberg:bayer_scale=1"
+        "[s0]palettegen=stats_mode=diff:max_colors=256[p];"
+        "[s1][p]paletteuse=dither=floyd_steinberg"
     )
 
     command = [
@@ -38,17 +35,24 @@ def build_gif(input_path, output_path):
 
         "-vf", vf,
 
-        # enforce consistent playback timing
         "-r", "24",
         "-vsync", "0",
 
-        # loop forever
         "-loop", "0",
 
         output_path
     ]
 
-    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    # IMPORTANT: surface real ffmpeg errors for debugging
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr)
 
 
 # ----------------------------
@@ -56,7 +60,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab stable v3 + color enhancement"}
+    return {"status": "media-lab stable gif engine (safe mode)"}
 
 
 @app.post("/upload")
@@ -71,10 +75,13 @@ async def upload(file: UploadFile = File(...)):
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        build_gif(input_path, output_path)
+        try:
+            build_gif(input_path, output_path)
+        except Exception as e:
+            return {"job_id": job_id, "error": str(e)}
 
         if not os.path.exists(output_path) or os.path.getsize(output_path) < 1000:
-            return {"job_id": job_id, "error": "conversion failed"}
+            return {"job_id": job_id, "error": "conversion produced empty GIF"}
 
         with open(output_path, "rb") as f:
             gif_data = f.read()
