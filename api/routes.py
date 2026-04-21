@@ -9,31 +9,30 @@ from tools.gif_motion import build_gif
 
 router = APIRouter()
 
-storage = {}
 
-
+# ----------------------------
+# UPLOAD
+# ----------------------------
 @router.post("/upload")
 async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     job_id = str(uuid.uuid4())
 
-    with tempfile.TemporaryDirectory() as tmp:
-        input_path = os.path.join(tmp, "input.mp4")
-        output_path = os.path.join(tmp, "output.gif")
+    input_path = f"/tmp/{job_id}_input.mp4"
+    output_path = f"/tmp/{job_id}_output.gif"
 
-        contents = await file.read()
-        with open(input_path, "wb") as f:
-            f.write(contents)
+    contents = await file.read()
+    with open(input_path, "wb") as f:
+        f.write(contents)
 
-        preset_data = PRESETS.get(preset, PRESETS["balanced_v1"])
-        vf = preset_data["vf"]
+    if preset not in PRESETS:
+        preset = "balanced_v1"
 
-        build_gif(input_path, output_path, vf)
+    vf = PRESETS[preset]["vf"]
 
-        if not os.path.exists(output_path):
-            return {"error": "conversion failed"}
+    build_gif(input_path, output_path, vf)
 
-        with open(output_path, "rb") as f:
-            storage[job_id] = f.read()
+    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+        return {"error": "conversion failed"}
 
     return {
         "job_id": job_id,
@@ -42,14 +41,14 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     }
 
 
+# ----------------------------
+# DOWNLOAD
+# ----------------------------
 @router.get("/download/{job_id}")
 def download(job_id: str):
-    if job_id not in storage:
+    output_path = f"/tmp/{job_id}_output.gif"
+
+    if not os.path.exists(output_path):
         return {"error": "file not ready"}
 
-    path = f"/tmp/{job_id}.gif"
-
-    with open(path, "wb") as f:
-        f.write(storage[job_id])
-
-    return FileResponse(path, media_type="image/gif", filename="output.gif")
+    return FileResponse(output_path, media_type="image/gif", filename="output.gif")
