@@ -5,64 +5,66 @@ import subprocess
 import imageio_ffmpeg
 import tempfile
 import os
+import cv2
 
 app = FastAPI()
 
 
 # ----------------------------
-# GIF ENGINE v5.3 (STABILITY FIRST)
+# STAGE 2: OpenCV enhancement
 # ----------------------------
-def build_gif(input_path, output_path):
+def enhance_frames(input_path):
+    cap = cv2.VideoCapture(input_path)
+
+    frames = []
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # light enhancement only (NO artifact amplification)
+        frame = cv2.convertScaleAbs(frame, alpha=1.08, beta=2)
+
+        frames.append(frame)
+
+    cap.release()
+    return frames, fps
+
+
+# ----------------------------
+# STAGE 3+4: Encode GIF via FFmpeg pipe
+# ----------------------------
+def encode_gif(frames, fps, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
-    vf = (
-        # ----------------------------
-        # mild normalization (reduces color instability)
-        # ----------------------------
-        "eq=contrast=1.05:saturation=1.08:brightness=0.01,"
+    with tempfile.TemporaryDirectory() as tmp:
+        frame_pattern = os.path.join(tmp, "frame_%04d.png")
 
-        # ----------------------------
-        # clean scaling (no artifacts introduced)
-        # ----------------------------
-        "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
+        for i, frame in enumerate(frames):
+            cv2.imwrite(frame_pattern % i, frame)
 
-        # ----------------------------
-        # stable frame timing
-        # ----------------------------
-        "fps=24,"
+        vf = (
+            "fps=24,"
+            "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
+            "split[s0][s1];"
+            "[s0]palettegen[p];"
+            "[s1][p]paletteuse=dither=floyd_steinberg"
+        )
 
-        # ----------------------------
-        # palette generation (STABLE MODE - avoids frame-to-frame drift)
-        # ----------------------------
-        "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=single:reserve_transparent=0[p];"
+        cmd = [
+            ffmpeg,
+            "-y",
+            "-framerate", "24",
+            "-i", os.path.join(tmp, "frame_%04d.png"),
+            "-vf", vf,
+            "-loop", "0",
+            "-f", "gif",
+            output_path
+        ]
 
-        # ----------------------------
-        # IMPORTANT CHANGE:
-        # remove noisy dithering completely
-        # ----------------------------
-        "[s1][p]paletteuse=dither=none"
-    )
-
-    command = [
-        ffmpeg,
-        "-y",
-        "-i", input_path,
-        "-vf", vf,
-        "-loop", "0",
-        "-f", "gif",
-        output_path
-    ]
-
-    result = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr)
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 # ----------------------------
@@ -70,7 +72,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v5.3 stability GIF engine running"}
+    return {"status": "media-lab pipeline v1 running"}
 
 
 @app.post("/upload")
@@ -85,7 +87,11 @@ async def upload(file: UploadFile = File(...)):
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        build_gif(input_path, output_path)
+        # STAGE 2
+        frames, fps = enhance_frames(input_path)
+
+        # STAGE 3 + 4
+        encode_gif(frames, fps, output_path)
 
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
             return {"job_id": job_id, "error": "conversion failed"}
