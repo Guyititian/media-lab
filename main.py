@@ -10,18 +10,22 @@ app = FastAPI()
 
 
 # ----------------------------
-# QUALITY ENGINE (v2)
+# STABLE QUALITY ENGINE (v3)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
+        # clean scaling first (no overprocessing)
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
-        "fps=30,"
-        "minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:vsbmc=1:me_mode=bidir,"
+        
+        # fixed FPS ONLY (remove interpolation completely)
+        "fps=24,"
+        
+        # palette generation (stable, not over-analyzed)
         "split[s0][s1];"
-        "[s0]palettegen=stats_mode=full:max_colors=256:reserve_transparent=0[p];"
-        "[s1][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle"
+        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
     )
 
     command = [
@@ -42,7 +46,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v2 running"}
+    return {"status": "media-lab v3 stable running"}
 
 
 @app.post("/upload")
@@ -53,21 +57,15 @@ async def upload(file: UploadFile = File(...)):
         input_path = os.path.join(tmp, "input.mp4")
         output_path = os.path.join(tmp, "output.gif")
 
-        # save upload
         contents = await file.read()
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        # process
         build_gif(input_path, output_path)
 
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-            return {
-                "job_id": job_id,
-                "error": "conversion failed"
-            }
+            return {"job_id": job_id, "error": "conversion failed"}
 
-        # store result in memory
         with open(output_path, "rb") as f:
             gif_data = f.read()
 
