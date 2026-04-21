@@ -2,7 +2,7 @@ import subprocess
 import imageio_ffmpeg
 
 
-def build_gif(input_path, output_path, vf: str):
+def build_gif(input_path, output_path, vf):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     command = [
