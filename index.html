@@ -98,14 +98,14 @@ button:hover {
 
 <div class="header">
   <h1>🛠 Media Lab</h1>
-  <p>Select a tool, input media, generate output</p>
+  <p>Bring your own media → process → download outputs</p>
 </div>
 
 <div class="grid">
 
   <div class="card" onclick="openTool('gif_motion')">
     <h3>GIF Motion</h3>
-    <p>Animate still images into motion GIFs</p>
+    <p>Animate images into motion GIFs</p>
   </div>
 
   <div class="card" onclick="openTool('upscale')">
@@ -130,6 +130,11 @@ button:hover {
 <script>
 let currentTool = null;
 
+/* ---------------------------
+   SET YOUR RENDER URL HERE
+----------------------------*/
+const API_BASE = "https://media-lab.onrender.com";
+
 function openTool(tool) {
   currentTool = tool;
 
@@ -144,7 +149,7 @@ async function runTool() {
   document.getElementById("output").innerText = "Processing...";
 
   try {
-    const res = await fetch("/api/run", {
+    const res = await fetch(`${API_BASE}/api/run`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({
