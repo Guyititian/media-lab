@@ -10,29 +10,43 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE QUALITY ENGINE (v3 + palette optimization)
+# QUALITY ENGINE v4 (GIF-first)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # slight color boost
-        "eq=saturation=1.06:contrast=1.03:gamma=1.01,"
+        # ----------------------------
+        # 1. mild perceptual correction (NOT heavy grading)
+        # ----------------------------
+        "eq=contrast=1.05:saturation=1.08:brightness=0.01,"
         
-        # scale
+        # ----------------------------
+        # 2. clean scaling (avoid aliasing noise)
+        # ----------------------------
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
         
-        # fps
+        # ----------------------------
+        # 3. FPS normalization (stable, no interpolation conflicts)
+        # ----------------------------
         "fps=24,"
         
-        # split for palette processing
+        # ----------------------------
+        # 4. split pipeline for better palette sampling
+        # ----------------------------
         "split[s0][s1];"
         
-        # 🔥 NEW: blur ONLY for palette generation
-        "[s0]boxblur=1:1,palettegen=max_colors=256:stats_mode=diff[p];"
+        # ----------------------------
+        # 5. palette generation (key improvement)
+        #    - stats_mode=single reduces noise sensitivity
+        #    - slight pre-denoise improves flat colors
+        # ----------------------------
+        "[s0]hqdn3d=1.2:1.2:6:6,palettegen=max_colors=256:stats_mode=single[p];"
         
-        # apply palette to original (not blurred)
-        "[s1][p]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle"
+        # ----------------------------
+        # 6. apply palette (controlled dithering)
+        # ----------------------------
+        "[s1][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle"
     )
 
     command = [
@@ -61,7 +75,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v3 + palette enhanced"}
+    return {"status": "media-lab v4 GIF quality engine running"}
 
 
 @app.post("/upload")
