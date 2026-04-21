@@ -40,7 +40,7 @@ def build_fast_gif(input_path, output_path):
 
 
 # ----------------------------
-# AI MODE (improved interpolation + preservation)
+# AI MODE (smooth + sharpened)
 # ----------------------------
 def run_ai_interpolation(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -64,11 +64,9 @@ def run_ai_interpolation(input_path, output_path):
         # --------------------------------------------------
         # STEP 2: AI interpolation placeholder (RIFE hook)
         # --------------------------------------------------
-        # Right now we pass frames through.
-        # Later: replace with real RIFE processing.
         interp_dir = frames_dir
 
-        # STEP 3: rebuild HIGH FPS intermediate video (important upgrade)
+        # STEP 3: rebuild HIGH FPS intermediate video
         rebuild = [
             ffmpeg,
             "-y",
@@ -81,17 +79,21 @@ def run_ai_interpolation(input_path, output_path):
         ]
         subprocess.run(rebuild, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        # STEP 4: GIF encoding optimized for smooth motion preservation
+        # STEP 4: FINAL GIF ENCODE (this is where quality is won/lost)
         vf_final = (
-            # preserve gradients before quantization
+            # preserve gradients
             "format=yuv444p,"
 
-            # light denoise only (avoid over-blurring)
-            "hqdn3d=0.6:0.6:2:2,"
+            # very light denoise (protect flat areas)
+            "hqdn3d=0.5:0.5:2:2,"
 
-            # slight color boost (controlled)
-            "eq=contrast=1.05:saturation=1.20:brightness=0.01,"
+            # sharpen edges (logos/text improvement)
+            "unsharp=lx=5:ly=5:la=0.8,"
 
+            # subtle color boost AFTER sharpening
+            "eq=contrast=1.06:saturation=1.22:brightness=0.01,"
+
+            # palette pipeline
             "split[s0][s1];"
             "[s0]palettegen=max_colors=256:stats_mode=single[p];"
             "[s1][p]paletteuse=dither=floyd_steinberg"
@@ -125,7 +127,7 @@ def build_gif(mode, input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v7 AI interpolation + improved GIF preservation running"}
+    return {"status": "media-lab v7.1 smooth + sharpened GIF engine running"}
 
 
 @app.post("/upload")
