@@ -10,43 +10,42 @@ app = FastAPI()
 
 
 # ----------------------------
-# QUALITY ENGINE v4 (GIF-first)
+# GIF ENGINE v5 (balanced quality)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
         # ----------------------------
-        # 1. mild perceptual correction (NOT heavy grading)
+        # 1. light sharpness enhancement (safe global clarity boost)
         # ----------------------------
-        "eq=contrast=1.05:saturation=1.08:brightness=0.01,"
+        "unsharp=5:5:0.8:3:3:0.4,"
         
         # ----------------------------
-        # 2. clean scaling (avoid aliasing noise)
+        # 2. clean scaling (preserve edges, avoid blur)
         # ----------------------------
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
         
         # ----------------------------
-        # 3. FPS normalization (stable, no interpolation conflicts)
+        # 3. stabilize FPS (no interpolation complexity yet)
         # ----------------------------
         "fps=24,"
         
         # ----------------------------
-        # 4. split pipeline for better palette sampling
+        # 4. palette workflow split
         # ----------------------------
-        "split[s0][s1];"
+        "split[a][b];"
         
         # ----------------------------
-        # 5. palette generation (key improvement)
-        #    - stats_mode=single reduces noise sensitivity
-        #    - slight pre-denoise improves flat colors
+        # 5. improved palette generation
+        #    - better color distribution sampling
         # ----------------------------
-        "[s0]hqdn3d=1.2:1.2:6:6,palettegen=max_colors=256:stats_mode=single[p];"
+        "[a]palettegen=max_colors=256:stats_mode=single:reserve_transparent=0[p];"
         
         # ----------------------------
-        # 6. apply palette (controlled dithering)
+        # 6. controlled dithering (reduces noise + improves perceived color depth)
         # ----------------------------
-        "[s1][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle"
+        "[b][p]paletteuse=dither=bayer:bayer_scale=2"
     )
 
     command = [
@@ -75,7 +74,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v4 GIF quality engine running"}
+    return {"status": "media-lab v5 GIF quality engine running"}
 
 
 @app.post("/upload")
@@ -90,10 +89,7 @@ async def upload(file: UploadFile = File(...)):
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        try:
-            build_gif(input_path, output_path)
-        except Exception as e:
-            return {"job_id": job_id, "error": str(e)}
+        build_gif(input_path, output_path)
 
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
             return {"job_id": job_id, "error": "conversion failed"}
