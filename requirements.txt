@@ -3,3 +3,4 @@ uvicorn
 python-multipart
 imageio-ffmpeg
 opencv-python-headless
+numpy
