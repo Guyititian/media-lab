@@ -10,38 +10,45 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE HIGH QUALITY PIPELINE
+# STABLE + ENHANCED GIF ENGINE
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # 1. Normalize + preserve sharpness
-        "scale=720:-2:flags=lanczos,"
-        
-        # 2. Stabilize frame rate (IMPORTANT: no interpolation chaos)
+        # high-quality scaling with sharp preservation
+        "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
+
+        # color enhancement BEFORE quantization (critical improvement)
+        "eq=contrast=1.08:saturation=1.25:brightness=0.01,"
+
+        # stable frame rate baseline (no interpolation yet)
         "fps=24,"
-        
-        # 3. Improve color retention BEFORE palette
+
+        # improves color depth before palette compression
         "format=yuv444p,"
-        
-        # 4. Denoise slightly (reduces gif artifacts in flat areas)
-        "hqdn3d=1.5:1.5:6:6,"
-        
-        # 5. Palette generation pipeline (best practice)
+
+        # mild denoise to reduce flat-area banding/artifacts
+        "hqdn3d=1.2:1.2:6:6,"
+
+        # GIF palette generation + dithering control
         "split[s0][s1];"
         "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-        "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
     )
 
     command = [
         ffmpeg,
         "-y",
         "-i", input_path,
+
+        # IMPORTANT: avoid conflicting FPS flags (fixes your earlier crashes)
         "-vf", vf,
         "-loop", "0",
-        "-movflags", "+faststart",
-        "-an",
+
+        # safety cap for huge outputs
+        "-fs", "10M",
+
         output_path
     ]
 
@@ -53,7 +60,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab stable gif engine v1"}
+    return {"status": "media-lab v4 stable + color enhancement running"}
 
 
 @app.post("/upload")
@@ -70,12 +77,14 @@ async def upload(file: UploadFile = File(...)):
 
         build_gif(input_path, output_path)
 
+        # validate output
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
             return {"job_id": job_id, "error": "conversion failed"}
 
         with open(output_path, "rb") as f:
             gif_data = f.read()
 
+    # in-memory storage (simple + Render-safe)
     app.state.storage = getattr(app.state, "storage", {})
     app.state.storage[job_id] = gif_data
 
