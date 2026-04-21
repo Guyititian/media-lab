@@ -10,32 +10,32 @@ app = FastAPI()
 
 
 # ----------------------------
-# OPTIMIZED INTERPOLATION ENGINE v2
+# BALANCED INTERPOLATION ENGINE v3
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # 1. Clean, stable scaling (avoid oversharpen halos)
+        # 1. Preserve edge sharpness (important for logos/text)
         "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
 
-        # 2. Slightly more conservative color enhancement
-        "eq=contrast=1.06:saturation=1.18:brightness=0.01,"
+        # 2. Stable color boost (not overdone)
+        "eq=contrast=1.08:saturation=1.22:brightness=0.01,"
 
-        # 3. 🔥 OPTIMIZED INTERPOLATION (LESS AGGRESSIVE)
-        # reduces ghosting + background instability
-        "minterpolate=fps=36:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
+        # 3. 🔥 CONTROLLED INTERPOLATION (key fix)
+        # back to safer temporal density
+        "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
 
-        # 4. Color precision (keep, but we avoid over-emphasis)
-        "format=yuv420p,"
+        # 4. Restore higher color fidelity (important fix vs v2)
+        "format=yuv444p,"
 
-        # 5. Lighter denoise (protects flat gradients)
-        "hqdn3d=1.0:1.0:4:4,"
+        # 5. Light denoise ONLY (protect flat backgrounds)
+        "hqdn3d=1.0:1.0:3:3,"
 
-        # 6. Cleaner palette generation + smoother dithering
+        # 6. CLEAN palette pipeline (no aggressive dithering)
         "split[s0][s1];"
         "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-        "[s1][p]paletteuse=dither=floyd_steinberg"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=1"
     )
 
     command = [
@@ -56,7 +56,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab interpolation engine v2 optimized"}
+    return {"status": "media-lab interpolation engine v3 balanced"}
 
 
 @app.post("/upload")
