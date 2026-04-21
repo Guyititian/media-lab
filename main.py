@@ -3,94 +3,72 @@ from fastapi.responses import FileResponse
 import uuid
 import subprocess
 import imageio_ffmpeg
-import tempfile
 import os
 
 app = FastAPI()
 
+# single stable output directory (CRITICAL FIX)
+BASE_DIR = "/tmp/media_lab"
+os.makedirs(BASE_DIR, exist_ok=True)
 
-# ----------------------------
-# GIF ENGINE (QUALITY FIXED FULL PIPELINE)
-# ----------------------------
+
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # remove compression noise FIRST (fixes green/background artifacts)
         "hqdn3d=1.5:1.5:6:6,"
-
-        # scale with high-quality resampling
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
-
-        # mild normalization (prevents washed-out greens without overboosting)
         "eq=saturation=1.08:contrast=1.05:gamma=1.02,"
-
-        # stable frame rate
         "fps=24,"
-
-        # clean palette generation (important for flat UI backgrounds)
         "split[s0][s1];"
-        "[s0]palettegen=stats_mode=single:max_colors=256:reserve_transparent=0[p];"
+        "[s0]palettegen=stats_mode=single:max_colors=256[p];"
         "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
     )
 
-    command = [
+    result = subprocess.run([
         ffmpeg,
         "-y",
         "-i", input_path,
         "-vf", vf,
-
-        # FFmpeg 7 safe timing mode
         "-fps_mode", "cfr",
-
         "-loop", "0",
         output_path
-    ]
-
-    result = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+    ],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    text=True)
 
     if result.returncode != 0:
         raise RuntimeError(result.stderr)
 
 
-# ----------------------------
-# API
-# ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab gif engine (quality fixed build)"}
+    return {"status": "media-lab stable fixed storage pipeline"}
 
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
     job_id = str(uuid.uuid4())
 
-    with tempfile.TemporaryDirectory() as tmp:
-        input_path = os.path.join(tmp, "input.mp4")
-        output_path = os.path.join(tmp, "output.gif")
+    input_path = os.path.join(BASE_DIR, f"{job_id}.mp4")
+    output_path = os.path.join(BASE_DIR, f"{job_id}.gif")
 
-        contents = await file.read()
-        with open(input_path, "wb") as f:
-            f.write(contents)
+    contents = await file.read()
 
-        try:
-            build_gif(input_path, output_path)
-        except Exception as e:
-            return {"job_id": job_id, "error": str(e)}
+    with open(input_path, "wb") as f:
+        f.write(contents)
 
-        if not os.path.exists(output_path) or os.path.getsize(output_path) < 1000:
-            return {"job_id": job_id, "error": "empty output"}
+    try:
+        build_gif(input_path, output_path)
+    except Exception as e:
+        return {"job_id": job_id, "error": str(e)}
 
-        with open(output_path, "rb") as f:
-            gif_data = f.read()
+    if not os.path.exists(output_path):
+        return {"job_id": job_id, "error": "no output file"}
 
-    app.state.storage = getattr(app.state, "storage", {})
-    app.state.storage[job_id] = gif_data
+    if os.path.getsize(output_path) < 50000:
+        return {"job_id": job_id, "error": "output too small (likely failed encoding)"}
 
     return {
         "job_id": job_id,
@@ -100,14 +78,9 @@ async def upload(file: UploadFile = File(...)):
 
 @app.get("/download/{job_id}")
 def download(job_id: str):
-    storage = getattr(app.state, "storage", {})
+    path = os.path.join(BASE_DIR, f"{job_id}.gif")
 
-    if job_id not in storage:
+    if not os.path.exists(path):
         return {"error": "file not ready"}
-
-    path = f"/tmp/{job_id}.gif"
-
-    with open(path, "wb") as f:
-        f.write(storage[job_id])
 
     return FileResponse(path, media_type="image/gif", filename="output.gif")
