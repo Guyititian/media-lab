@@ -9,9 +9,44 @@ import os
 app = FastAPI()
 
 
+# ----------------------------
+# CORE ENGINE (v1 QUALITY PIPELINE)
+# ----------------------------
+def build_gif(input_path, output_path):
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+
+    command = [
+        ffmpeg,
+        "-y",
+        "-i", input_path,
+
+        # ----------------------------
+        # 🎯 QUALITY LAYER (this is your differentiator)
+        # ----------------------------
+        "-vf",
+        (
+            "fps=24,"
+            "scale=540:-1:flags=lanczos,"
+            "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:vsbmc=1,"
+            "split[s0][s1];"
+            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=5"
+        ),
+
+        "-loop", "0",
+        "-fs", "8M",  # soft cap for Nuvio-safe behavior
+        output_path
+    ]
+
+    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+# ----------------------------
+# API
+# ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab running"}
+    return {"status": "media-lab v1 running"}
 
 
 @app.post("/upload")
@@ -20,50 +55,32 @@ async def upload(file: UploadFile = File(...)):
 
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
-    # 🔥 IMPORTANT: use true temp directory (Render-safe)
     with tempfile.TemporaryDirectory() as tmp:
 
         input_path = os.path.join(tmp, "input.mp4")
-        palette_path = os.path.join(tmp, "palette.png")
         output_path = os.path.join(tmp, "output.gif")
 
+        # Save upload
         contents = await file.read()
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        # palette step
-        subprocess.run([
-            ffmpeg,
-            "-y",
-            "-i",
-            input_path,
-            "-vf",
-            "fps=15,scale=480:-1:flags=lanczos,palettegen",
-            palette_path
-        ])
+        # Run enhancement engine
+        build_gif(input_path, output_path)
 
-        # gif step
-        subprocess.run([
-            ffmpeg,
-            "-y",
-            "-i",
-            input_path,
-            "-i",
-            palette_path,
-            "-lavfi",
-            "fps=15,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse",
-            "-loop",
-            "0",
-            output_path
-        ])
+        # Read result into memory (safe from Render disk resets)
+        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            return {
+                "job_id": job_id,
+                "error": "conversion failed"
+            }
 
-        # 🔥 read file into memory before temp folder disappears
         with open(output_path, "rb") as f:
-            gif_bytes = f.read()
+            gif_data = f.read()
 
-    # store in global memory (safe for small MVP testing)
+    # store in-memory (MVP safe)
     app.state.storage = getattr(app.state, "storage", {})
-    app.state.storage[job_id] = gif_bytes
+    app.state.storage[job_id] = gif_data
 
     return {
         "job_id": job_id,
