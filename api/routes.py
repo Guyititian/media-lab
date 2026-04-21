@@ -4,34 +4,15 @@ import uuid
 import tempfile
 import os
 
-from tools.gif_motion import process
 from core.presets import PRESETS
+from tools.gif_motion import build_gif
 
 router = APIRouter()
 
 
-# ------------------------
-# STATUS
-# ------------------------
-@router.get("/")
-def root():
-    return {
-        "status": "Media Lab running",
-        "presets": list(PRESETS.keys())
-    }
-
-
-# ------------------------
-# PRESET LIST (FOR FRONTEND)
-# ------------------------
-@router.get("/presets")
-def get_presets():
-    return PRESETS
-
-
-# ------------------------
-# GIF GENERATION
-# ------------------------
+# ----------------------------
+# UPLOAD ENDPOINT
+# ----------------------------
 @router.post("/upload")
 async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     job_id = str(uuid.uuid4())
@@ -44,38 +25,48 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        process(input_path, output_path, preset)
+        # get preset config
+        if preset not in PRESETS:
+            preset = "balanced_v1"
 
-        if not os.path.exists(output_path):
-            return {"error": "conversion failed"}
+        preset_data = PRESETS[preset]
+        vf = preset_data["vf"]
+
+        # build gif using selected preset
+        build_gif(input_path, output_path, vf)
+
+        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            return {"job_id": job_id, "error": "conversion failed"}
 
         with open(output_path, "rb") as f:
-            data = f.read()
+            gif_data = f.read()
 
     # simple in-memory storage
-    storage = router.storage if hasattr(router, "storage") else {}
-    storage[job_id] = data
-    router.storage = storage
+    if not hasattr(router, "storage"):
+        router.storage = {}
+
+    router.storage[job_id] = gif_data
 
     return {
         "job_id": job_id,
-        "download_url": f"/download/{job_id}"
+        "download_url": f"/download/{job_id}",
+        "preset": preset
     }
 
 
-# ------------------------
-# DOWNLOAD
-# ------------------------
+# ----------------------------
+# DOWNLOAD ENDPOINT
+# ----------------------------
 @router.get("/download/{job_id}")
 def download(job_id: str):
     storage = getattr(router, "storage", {})
 
     if job_id not in storage:
-        return {"error": "not ready"}
+        return {"error": "file not ready"}
 
     path = f"/tmp/{job_id}.gif"
 
     with open(path, "wb") as f:
         f.write(storage[job_id])
 
-    return FileResponse(path, media_type="image/gif")
+    return FileResponse(path, media_type="image/gif", filename="output.gif")
