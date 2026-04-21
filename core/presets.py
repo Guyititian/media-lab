@@ -16,16 +16,16 @@ PRESETS = {
 
     "fluid_motion_v1": {
         "label": "Fluid Motion",
-        "description": "High smoothness interpolation-based motion rendering.",
+        "description": "High smoothness, vivid color, minimal artifact pipeline (peak quality mode).",
         "vf": (
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "eq=contrast=1.10:saturation=1.25:brightness=0.01,"
-            "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
+            "eq=contrast=1.12:saturation=1.30:brightness=0.01,"
+            "minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
             "format=yuv444p,"
-            "hqdn3d=1.2:1.2:4:4,"
+            "hqdn3d=1.0:1.0:4:4,"
             "split[s0][s1];"
             "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-            "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle"
         )
     }
 }
