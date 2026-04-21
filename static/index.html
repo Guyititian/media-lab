@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Media Lab</title>
+
+<style>
+body {
+  margin:0;
+  font-family:Arial;
+  background:#111;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.container {
+  width:400px;
+}
+
+h1 {
+  margin-bottom:10px;
+}
+
+input, select, button {
+  width:100%;
+  margin:8px 0;
+  padding:10px;
+  border-radius:6px;
+  border:none;
+}
+
+button {
+  background:white;
+  color:black;
+  cursor:pointer;
+}
+
+button:hover {
+  opacity:0.8;
+}
+
+#output {
+  margin-top:20px;
+  font-size:12px;
+  opacity:0.7;
+  word-break:break-all;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Media Lab</h1>
+
+  <input id="imageUrl" placeholder="Image URL">
+
+  <select id="tool">
+    <option value="gif_motion">GIF Motion</option>
+  </select>
+
+  <button onclick="runTool()">Generate</button>
+
+  <div id="output"></div>
+
+</div>
+
+<script>
+async function runTool() {
+  const url = document.getElementById("imageUrl").value;
+  const tool = document.getElementById("tool").value;
+
+  const res = await fetch("/api/run", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      tool: tool,
+      input: { image_url: url }
+    })
+  });
+
+  const data = await res.json();
+
+  document.getElementById("output").innerHTML =
+    "Output: " + (data.output_url || JSON.stringify(data));
+}
+</script>
+
+</body>
+</html>
