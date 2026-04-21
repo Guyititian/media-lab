@@ -1,13 +1,9 @@
 import subprocess
 import imageio_ffmpeg
-from core.presets import PRESETS
 
 
-def process(input_path: str, output_path: str, preset: str = "balanced_v1"):
+def build_gif(input_path, output_path, vf: str):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-
-    config = PRESETS[preset]
-    vf = config["vf"]
 
     command = [
         ffmpeg,
@@ -15,10 +11,8 @@ def process(input_path: str, output_path: str, preset: str = "balanced_v1"):
         "-i", input_path,
         "-vf", vf,
         "-loop", "0",
-        "-an",
-        "-vsync", "0",
-        "-f", "gif",
+        "-fs", "10M",
         output_path
     ]
 
-    subprocess.run(command)
+    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
