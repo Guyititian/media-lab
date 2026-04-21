@@ -10,24 +10,28 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE QUALITY ENGINE (v3 + color improvement)
+# STABLE QUALITY ENGINE (v3 + palette optimization)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # subtle color boost (safe)
+        # slight color boost
         "eq=saturation=1.06:contrast=1.03:gamma=1.01,"
         
-        # scaling
+        # scale
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
         
-        # fps control
+        # fps
         "fps=24,"
         
-        # palette system (improved)
+        # split for palette processing
         "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+        
+        # 🔥 NEW: blur ONLY for palette generation
+        "[s0]boxblur=1:1,palettegen=max_colors=256:stats_mode=diff[p];"
+        
+        # apply palette to original (not blurred)
         "[s1][p]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle"
     )
 
@@ -57,7 +61,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v3 + color tuned"}
+    return {"status": "media-lab v3 + palette enhanced"}
 
 
 @app.post("/upload")
