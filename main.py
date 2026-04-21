@@ -6,11 +6,14 @@ import imageio_ffmpeg
 import tempfile
 import os
 
+import cv2
+import numpy as np
+
 app = FastAPI()
 
 
 # ----------------------------
-# FAST MODE (baseline stable)
+# FAST MODE (unchanged stable baseline)
 # ----------------------------
 def build_fast_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -40,15 +43,48 @@ def build_fast_gif(input_path, output_path):
 
 
 # ----------------------------
-# AI MODE (smooth + sharpened)
+# EDGE-AWARE SHARPENING (SAFE MODE A)
 # ----------------------------
-def run_ai_interpolation(input_path, output_path):
+def edge_sharpen_frame(img):
+    """
+    Light edge-preserving sharpening:
+    - detect edges (Sobel)
+    - apply gentle unsharp only where edges exist
+    """
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Edge detection (soft mask, not binary)
+    sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    edge = cv2.magnitude(sobelx, sobely)
+
+    edge = cv2.normalize(edge, None, 0, 1.0, cv2.NORM_MINMAX)
+
+    # Gentle blur + sharpen
+    blurred = cv2.GaussianBlur(img, (0, 0), 1.0)
+    sharpened = cv2.addWeighted(img, 1.25, blurred, -0.25, 0)
+
+    # Blend sharpen only on edges
+    edge_3ch = cv2.merge([edge, edge, edge])
+    result = img * (1 - edge_3ch) + sharpened * edge_3ch
+
+    return np.clip(result, 0, 255).astype(np.uint8)
+
+
+# ----------------------------
+# AI PIPELINE (SAFE VERSION A)
+# ----------------------------
+def run_ai_pipeline(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     with tempfile.TemporaryDirectory() as tmp:
 
         frames_dir = os.path.join(tmp, "frames")
         os.makedirs(frames_dir, exist_ok=True)
+
+        processed_dir = os.path.join(tmp, "processed")
+        os.makedirs(processed_dir, exist_ok=True)
 
         interp_video = os.path.join(tmp, "interp.mp4")
 
@@ -61,15 +97,26 @@ def run_ai_interpolation(input_path, output_path):
         ]
         subprocess.run(extract, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        # STEP 2: AI interpolation placeholder (RIFE hook)
-        interp_dir = frames_dir
+        # STEP 2: OpenCV edge-aware sharpening
+        frame_files = sorted(os.listdir(frames_dir))
 
-        # STEP 3: rebuild HIGH FPS intermediate video
+        for f in frame_files:
+            path = os.path.join(frames_dir, f)
+            img = cv2.imread(path)
+
+            if img is None:
+                continue
+
+            processed = edge_sharpen_frame(img)
+
+            cv2.imwrite(os.path.join(processed_dir, f), processed)
+
+        # STEP 3: rebuild video at higher FPS
         rebuild = [
             ffmpeg,
             "-y",
             "-framerate", "60",
-            "-i", os.path.join(interp_dir, "%04d.png"),
+            "-i", os.path.join(processed_dir, "%04d.png"),
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
             "-crf", "16",
@@ -77,11 +124,10 @@ def run_ai_interpolation(input_path, output_path):
         ]
         subprocess.run(rebuild, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        # STEP 4: FINAL GIF ENCODE
+        # STEP 4: GIF encode (UNCHANGED stability baseline)
         vf_final = (
             "format=yuv444p,"
             "hqdn3d=0.5:0.5:2:2,"
-            "unsharp=lx=7:ly=7:la=1.2,"
             "eq=contrast=1.06:saturation=1.22:brightness=0.01,"
             "split[s0][s1];"
             "[s0]palettegen=max_colors=256:stats_mode=single[p];"
@@ -106,7 +152,7 @@ def run_ai_interpolation(input_path, output_path):
 # ----------------------------
 def build_gif(mode, input_path, output_path):
     if mode == "ai":
-        run_ai_interpolation(input_path, output_path)
+        run_ai_pipeline(input_path, output_path)
     else:
         build_fast_gif(input_path, output_path)
 
@@ -116,13 +162,13 @@ def build_gif(mode, input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v7.2 stronger sharpening GIF engine running"}
+    return {"status": "media-lab v8.0 safe edge-aware pipeline running"}
 
 
 @app.post("/upload")
 async def upload(
     file: UploadFile = File(...),
-    mode: str = Query(default="fast")  # fast | ai
+    mode: str = Query(default="fast")
 ):
     job_id = str(uuid.uuid4())
 
