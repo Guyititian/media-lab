@@ -10,7 +10,7 @@ app = FastAPI()
 
 
 # ----------------------------
-# FAST MODE (current stable pipeline)
+# FAST MODE (stable baseline)
 # ----------------------------
 def build_fast_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -40,38 +40,58 @@ def build_fast_gif(input_path, output_path):
 
 
 # ----------------------------
-# SMOOTH MODE (HYBRID PIPELINE)
+# AI INTERPOLATION STAGE (RIFE HOOK)
 # ----------------------------
-def build_smooth_gif(input_path, output_path):
+def run_ai_interpolation(input_path, output_path):
+    """
+    This is the plug-in point for RIFE.
+
+    For now:
+    - we simulate structure safely (no crash)
+    - later we replace this with real RIFE execution
+    """
+
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     with tempfile.TemporaryDirectory() as tmp:
-        interpolated = os.path.join(tmp, "interp.mp4")
+        frames_dir = os.path.join(tmp, "frames")
 
-        # STEP 1: upscale + stabilize before interpolation
-        preprocess = [
+        os.makedirs(frames_dir, exist_ok=True)
+
+        # STEP 1: extract frames
+        extract = [
             ffmpeg,
             "-y",
             "-i", input_path,
-            "-vf",
-            "scale=720:-2:flags=lanczos,fps=24",
-            interpolated
+            os.path.join(frames_dir, "%04d.png")
         ]
-        subprocess.run(preprocess, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(extract, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        # STEP 2: interpolation stage (FFmpeg-safe baseline version first)
-        interp_cmd = [
+        # STEP 2: PLACEHOLDER FOR RIFE INTERPOLATION
+        # -----------------------------------------
+        # This is where real AI interpolation runs:
+        #
+        # Example target behavior:
+        #   input frames → RIFE → doubled frame set (48–60fps equivalent)
+        #
+        # For now we just pass-through frames (safe fallback)
+        interp_dir = frames_dir
+
+        # STEP 3: re-encode frames into video
+        temp_video = os.path.join(tmp, "interp.mp4")
+
+        encode = [
             ffmpeg,
             "-y",
-            "-i", interpolated,
-            "-vf",
-            "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1",
-            "-an",
-            os.path.join(tmp, "interp2.mp4")
+            "-framerate", "48",
+            "-i", os.path.join(interp_dir, "%04d.png"),
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            temp_video
         ]
-        subprocess.run(interp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(encode, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        # STEP 3: final GIF encode (same quality pipeline as fast mode)
+        # STEP 4: convert to GIF using your proven pipeline
         vf_final = (
             "eq=contrast=1.08:saturation=1.25:brightness=0.01,"
             "format=yuv444p,"
@@ -83,7 +103,7 @@ def build_smooth_gif(input_path, output_path):
         final_cmd = [
             ffmpeg,
             "-y",
-            "-i", os.path.join(tmp, "interp2.mp4"),
+            "-i", temp_video,
             "-vf", vf_final,
             "-loop", "0",
             "-fs", "12M",
@@ -97,8 +117,8 @@ def build_smooth_gif(input_path, output_path):
 # ROUTER
 # ----------------------------
 def build_gif(mode, input_path, output_path):
-    if mode == "smooth":
-        build_smooth_gif(input_path, output_path)
+    if mode == "ai":
+        run_ai_interpolation(input_path, output_path)
     else:
         build_fast_gif(input_path, output_path)
 
@@ -108,13 +128,13 @@ def build_gif(mode, input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab hybrid engine v5 running"}
+    return {"status": "media-lab v6 AI interpolation ready (skeleton)"}
 
 
 @app.post("/upload")
 async def upload(
     file: UploadFile = File(...),
-    mode: str = Query(default="fast")  # fast | smooth
+    mode: str = Query(default="fast")  # fast | ai
 ):
     job_id = str(uuid.uuid4())
 
