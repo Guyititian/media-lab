@@ -10,42 +10,69 @@ body {
   background:#0f0f0f;
   color:white;
   font-family:Arial;
+}
+
+.header {
+  padding:30px;
+  text-align:center;
+}
+
+.header h1 {
+  margin:0;
+  font-size:26px;
+}
+
+.header p {
+  opacity:0.6;
+  font-size:13px;
+}
+
+.grid {
   display:flex;
   justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.container {
-  width:420px;
-  text-align:left;
-}
-
-h1 {
-  font-size:26px;
-  margin-bottom:10px;
-}
-
-.sub {
-  opacity:0.6;
-  margin-bottom:20px;
-  font-size:13px;
+  gap:20px;
+  flex-wrap:wrap;
+  padding:20px;
 }
 
 .card {
   background:#1c1c1c;
-  padding:16px;
+  width:240px;
+  padding:18px;
   border-radius:12px;
-  margin-bottom:12px;
+  cursor:pointer;
+  transition:0.2s;
 }
 
-input, select, button {
+.card:hover {
+  transform:translateY(-4px);
+  background:#252525;
+}
+
+.card h3 {
+  margin:0 0 8px 0;
+}
+
+.card p {
+  font-size:12px;
+  opacity:0.7;
+}
+
+.panel {
+  max-width:500px;
+  margin:30px auto;
+  background:#1c1c1c;
+  padding:20px;
+  border-radius:12px;
+  display:none;
+}
+
+input, button {
   width:100%;
-  margin-top:8px;
   padding:10px;
+  margin-top:10px;
   border:none;
   border-radius:6px;
-  font-size:14px;
 }
 
 button {
@@ -59,9 +86,9 @@ button:hover {
 }
 
 #output {
-  margin-top:16px;
+  margin-top:15px;
   font-size:12px;
-  opacity:0.7;
+  opacity:0.8;
   word-break:break-all;
 }
 </style>
@@ -69,33 +96,50 @@ button:hover {
 
 <body>
 
-<div class="container">
-
+<div class="header">
   <h1>🛠 Media Lab</h1>
-  <div class="sub">Bring your own media → process → download</div>
+  <p>Select a tool, input media, generate output</p>
+</div>
 
-  <div class="card">
+<div class="grid">
 
-    <label>Image URL</label>
-    <input id="imageUrl" placeholder="Paste image URL">
+  <div class="card" onclick="openTool('gif_motion')">
+    <h3>GIF Motion</h3>
+    <p>Animate still images into motion GIFs</p>
+  </div>
 
-    <label>Tool</label>
-    <select id="tool">
-      <option value="gif_motion">GIF Motion</option>
-    </select>
-
-    <button onclick="runTool()">Generate</button>
-
-    <div id="output"></div>
-
+  <div class="card" onclick="openTool('upscale')">
+    <h3>Upscale</h3>
+    <p>Enhance resolution and clarity</p>
   </div>
 
 </div>
 
+<div class="panel" id="panel">
+
+  <h3 id="toolTitle"></h3>
+
+  <input id="inputUrl" placeholder="Paste image URL">
+
+  <button onclick="runTool()">Run Tool</button>
+
+  <div id="output"></div>
+
+</div>
+
 <script>
+let currentTool = null;
+
+function openTool(tool) {
+  currentTool = tool;
+
+  document.getElementById("panel").style.display = "block";
+  document.getElementById("toolTitle").innerText = "Tool: " + tool;
+  document.getElementById("output").innerText = "";
+}
+
 async function runTool() {
-  const image_url = document.getElementById("imageUrl").value;
-  const tool = document.getElementById("tool").value;
+  const url = document.getElementById("inputUrl").value;
 
   document.getElementById("output").innerText = "Processing...";
 
@@ -104,8 +148,10 @@ async function runTool() {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({
-        tool: tool,
-        input: { image_url }
+        tool: currentTool,
+        input: {
+          image_url: url
+        }
       })
     });
 
@@ -114,9 +160,9 @@ async function runTool() {
     document.getElementById("output").innerText =
       "Output: " + (data.output_url || JSON.stringify(data));
 
-  } catch (err) {
+  } catch (e) {
     document.getElementById("output").innerText =
-      "Error: " + err.message;
+      "Error: " + e.message;
   }
 }
 </script>
