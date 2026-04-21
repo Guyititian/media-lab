@@ -9,10 +9,9 @@ from tools.gif_motion import build_gif
 
 router = APIRouter()
 
+storage = {}
 
-# ----------------------------
-# UPLOAD ENDPOINT
-# ----------------------------
+
 @router.post("/upload")
 async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     job_id = str(uuid.uuid4())
@@ -25,27 +24,16 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        # get preset config
-        if preset not in PRESETS:
-            preset = "balanced_v1"
-
-        preset_data = PRESETS[preset]
+        preset_data = PRESETS.get(preset, PRESETS["balanced_v1"])
         vf = preset_data["vf"]
 
-        # build gif using selected preset
         build_gif(input_path, output_path, vf)
 
-        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-            return {"job_id": job_id, "error": "conversion failed"}
+        if not os.path.exists(output_path):
+            return {"error": "conversion failed"}
 
         with open(output_path, "rb") as f:
-            gif_data = f.read()
-
-    # simple in-memory storage
-    if not hasattr(router, "storage"):
-        router.storage = {}
-
-    router.storage[job_id] = gif_data
+            storage[job_id] = f.read()
 
     return {
         "job_id": job_id,
@@ -54,13 +42,8 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     }
 
 
-# ----------------------------
-# DOWNLOAD ENDPOINT
-# ----------------------------
 @router.get("/download/{job_id}")
 def download(job_id: str):
-    storage = getattr(router, "storage", {})
-
     if job_id not in storage:
         return {"error": "file not ready"}
 
