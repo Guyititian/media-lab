@@ -10,34 +10,28 @@ app = FastAPI()
 
 
 # ----------------------------
-# BALANCED GIF ENGINE v5
+# STABLE HIGH QUALITY PIPELINE
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # sharper scaling, but slightly less aggressive than v4
-        "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-
-        # selective contrast (protects shadows/highlights better than eq)
-        "curves=preset=medium_contrast,"
-
-        # mild saturation boost (reduced to prevent flat-area artifacts)
-        "eq=saturation=1.15:brightness=0.01,"
-
-        # stabilize motion perception
+        # 1. Normalize + preserve sharpness
+        "scale=720:-2:flags=lanczos,"
+        
+        # 2. Stabilize frame rate (IMPORTANT: no interpolation chaos)
         "fps=24,"
-
-        # preserve better gradients before quantization
-        "format=yuv420p,"
-
-        # reduce banding while avoiding over-dithering
-        "hqdn3d=1.0:1.0:4:4,"
-
-        # palette system tuned for stability over intensity
+        
+        # 3. Improve color retention BEFORE palette
+        "format=yuv444p,"
+        
+        # 4. Denoise slightly (reduces gif artifacts in flat areas)
+        "hqdn3d=1.5:1.5:6:6,"
+        
+        # 5. Palette generation pipeline (best practice)
         "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=diff:reserve_transparent=0[p];"
-        "[s1][p]paletteuse=dither=floyd_steinberg:bayer_scale=1"
+        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
     )
 
     command = [
@@ -46,7 +40,8 @@ def build_gif(input_path, output_path):
         "-i", input_path,
         "-vf", vf,
         "-loop", "0",
-        "-fs", "10M",
+        "-movflags", "+faststart",
+        "-an",
         output_path
     ]
 
@@ -58,7 +53,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v5 balanced engine running"}
+    return {"status": "media-lab stable gif engine v1"}
 
 
 @app.post("/upload")
