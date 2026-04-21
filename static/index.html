@@ -7,9 +7,9 @@
 <style>
 body {
   margin:0;
-  font-family:Arial;
-  background:#111;
+  background:#0f0f0f;
   color:white;
+  font-family:Arial;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -17,19 +17,35 @@ body {
 }
 
 .container {
-  width:400px;
+  width:420px;
+  text-align:left;
 }
 
 h1 {
+  font-size:26px;
   margin-bottom:10px;
+}
+
+.sub {
+  opacity:0.6;
+  margin-bottom:20px;
+  font-size:13px;
+}
+
+.card {
+  background:#1c1c1c;
+  padding:16px;
+  border-radius:12px;
+  margin-bottom:12px;
 }
 
 input, select, button {
   width:100%;
-  margin:8px 0;
+  margin-top:8px;
   padding:10px;
-  border-radius:6px;
   border:none;
+  border-radius:6px;
+  font-size:14px;
 }
 
 button {
@@ -39,11 +55,11 @@ button {
 }
 
 button:hover {
-  opacity:0.8;
+  opacity:0.85;
 }
 
 #output {
-  margin-top:20px;
+  margin-top:16px;
   font-size:12px;
   opacity:0.7;
   word-break:break-all;
@@ -55,38 +71,53 @@ button:hover {
 
 <div class="container">
 
-  <h1>Media Lab</h1>
+  <h1>🛠 Media Lab</h1>
+  <div class="sub">Bring your own media → process → download</div>
 
-  <input id="imageUrl" placeholder="Image URL">
+  <div class="card">
 
-  <select id="tool">
-    <option value="gif_motion">GIF Motion</option>
-  </select>
+    <label>Image URL</label>
+    <input id="imageUrl" placeholder="Paste image URL">
 
-  <button onclick="runTool()">Generate</button>
+    <label>Tool</label>
+    <select id="tool">
+      <option value="gif_motion">GIF Motion</option>
+    </select>
 
-  <div id="output"></div>
+    <button onclick="runTool()">Generate</button>
+
+    <div id="output"></div>
+
+  </div>
 
 </div>
 
 <script>
 async function runTool() {
-  const url = document.getElementById("imageUrl").value;
+  const image_url = document.getElementById("imageUrl").value;
   const tool = document.getElementById("tool").value;
 
-  const res = await fetch("/api/run", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      tool: tool,
-      input: { image_url: url }
-    })
-  });
+  document.getElementById("output").innerText = "Processing...";
 
-  const data = await res.json();
+  try {
+    const res = await fetch("/api/run", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        tool: tool,
+        input: { image_url }
+      })
+    });
 
-  document.getElementById("output").innerHTML =
-    "Output: " + (data.output_url || JSON.stringify(data));
+    const data = await res.json();
+
+    document.getElementById("output").innerText =
+      "Output: " + (data.output_url || JSON.stringify(data));
+
+  } catch (err) {
+    document.getElementById("output").innerText =
+      "Error: " + err.message;
+  }
 }
 </script>
 
