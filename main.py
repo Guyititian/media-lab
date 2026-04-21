@@ -5,66 +5,47 @@ import subprocess
 import imageio_ffmpeg
 import tempfile
 import os
-import cv2
 
 app = FastAPI()
 
 
 # ----------------------------
-# STAGE 2: OpenCV enhancement
+# STABLE HIGH QUALITY PIPELINE
 # ----------------------------
-def enhance_frames(input_path):
-    cap = cv2.VideoCapture(input_path)
-
-    frames = []
-    fps = cap.get(cv2.CAP_PROP_FPS)
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # light enhancement only (NO artifact amplification)
-        frame = cv2.convertScaleAbs(frame, alpha=1.08, beta=2)
-
-        frames.append(frame)
-
-    cap.release()
-    return frames, fps
-
-
-# ----------------------------
-# STAGE 3+4: Encode GIF via FFmpeg pipe
-# ----------------------------
-def encode_gif(frames, fps, output_path):
+def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
-    with tempfile.TemporaryDirectory() as tmp:
-        frame_pattern = os.path.join(tmp, "frame_%04d.png")
+    vf = (
+        # 1. Normalize + preserve sharpness
+        "scale=720:-2:flags=lanczos,"
+        
+        # 2. Stabilize frame rate (IMPORTANT: no interpolation chaos)
+        "fps=24,"
+        
+        # 3. Improve color retention BEFORE palette
+        "format=yuv444p,"
+        
+        # 4. Denoise slightly (reduces gif artifacts in flat areas)
+        "hqdn3d=1.5:1.5:6:6,"
+        
+        # 5. Palette generation pipeline (best practice)
+        "split[s0][s1];"
+        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
+    )
 
-        for i, frame in enumerate(frames):
-            cv2.imwrite(frame_pattern % i, frame)
+    command = [
+        ffmpeg,
+        "-y",
+        "-i", input_path,
+        "-vf", vf,
+        "-loop", "0",
+        "-movflags", "+faststart",
+        "-an",
+        output_path
+    ]
 
-        vf = (
-            "fps=24,"
-            "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "split[s0][s1];"
-            "[s0]palettegen[p];"
-            "[s1][p]paletteuse=dither=floyd_steinberg"
-        )
-
-        cmd = [
-            ffmpeg,
-            "-y",
-            "-framerate", "24",
-            "-i", os.path.join(tmp, "frame_%04d.png"),
-            "-vf", vf,
-            "-loop", "0",
-            "-f", "gif",
-            output_path
-        ]
-
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 # ----------------------------
@@ -72,7 +53,7 @@ def encode_gif(frames, fps, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab pipeline v1 running"}
+    return {"status": "media-lab stable gif engine v1"}
 
 
 @app.post("/upload")
@@ -87,11 +68,7 @@ async def upload(file: UploadFile = File(...)):
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        # STAGE 2
-        frames, fps = enhance_frames(input_path)
-
-        # STAGE 3 + 4
-        encode_gif(frames, fps, output_path)
+        build_gif(input_path, output_path)
 
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
             return {"job_id": job_id, "error": "conversion failed"}
