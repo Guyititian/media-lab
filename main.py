@@ -1,66 +1,43 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 import uuid
-import subprocess
-import imageio_ffmpeg
-import tempfile
 import os
+import tempfile
+
+# import tool
+from tools.gif_motion import process as gif_process
 
 app = FastAPI()
 
 
 # ----------------------------
-# BALANCED INTERPOLATION ENGINE v3
+# TOOL REGISTRY (future-proofing layer)
 # ----------------------------
-def build_gif(input_path, output_path):
-    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-
-    vf = (
-        # 1. Preserve edge sharpness (important for logos/text)
-        "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-
-        # 2. Stable color boost (not overdone)
-        "eq=contrast=1.08:saturation=1.22:brightness=0.01,"
-
-        # 3. 🔥 CONTROLLED INTERPOLATION (key fix)
-        # back to safer temporal density
-        "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
-
-        # 4. Restore higher color fidelity (important fix vs v2)
-        "format=yuv444p,"
-
-        # 5. Light denoise ONLY (protect flat backgrounds)
-        "hqdn3d=1.0:1.0:3:3,"
-
-        # 6. CLEAN palette pipeline (no aggressive dithering)
-        "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-        "[s1][p]paletteuse=dither=bayer:bayer_scale=1"
-    )
-
-    command = [
-        ffmpeg,
-        "-y",
-        "-i", input_path,
-        "-vf", vf,
-        "-loop", "0",
-        "-fs", "10M",
-        output_path
-    ]
-
-    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+TOOLS = {
+    "gif_motion": gif_process
+}
 
 
 # ----------------------------
-# API
+# ROOT
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab interpolation engine v3 balanced"}
+    return {
+        "status": "media-lab tool engine v1",
+        "tools": list(TOOLS.keys())
+    }
 
 
-@app.post("/upload")
-async def upload(file: UploadFile = File(...)):
+# ----------------------------
+# SUBMIT JOB (tool-based)
+# ----------------------------
+@app.post("/tools/{tool_name}/submit")
+async def submit(tool_name: str, file: UploadFile = File(...)):
+    
+    if tool_name not in TOOLS:
+        return {"error": "tool not found"}
+
     job_id = str(uuid.uuid4())
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -68,36 +45,71 @@ async def upload(file: UploadFile = File(...)):
         output_path = os.path.join(tmp, "output.gif")
 
         contents = await file.read()
+
         with open(input_path, "wb") as f:
             f.write(contents)
 
-        build_gif(input_path, output_path)
+        # run tool
+        TOOLS[tool_name](input_path, output_path)
 
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-            return {"job_id": job_id, "error": "conversion failed"}
+            return {"job_id": job_id, "error": "processing failed"}
 
         with open(output_path, "rb") as f:
             gif_data = f.read()
 
-    app.state.storage = getattr(app.state, "storage", {})
-    app.state.storage[job_id] = gif_data
+    # store job
+    app.state.jobs = getattr(app.state, "jobs", {})
+
+    app.state.jobs[job_id] = {
+        "tool": tool_name,
+        "status": "completed",
+        "file": gif_data
+    }
 
     return {
         "job_id": job_id,
-        "download_url": f"/download/{job_id}"
+        "status": "completed",
+        "result_url": f"/jobs/{job_id}/result"
     }
 
 
-@app.get("/download/{job_id}")
-def download(job_id: str):
-    storage = getattr(app.state, "storage", {})
+# ----------------------------
+# JOB STATUS
+# ----------------------------
+@app.get("/jobs/{job_id}")
+def job_status(job_id: str):
 
-    if job_id not in storage:
-        return {"error": "file not ready"}
+    jobs = getattr(app.state, "jobs", {})
+
+    if job_id not in jobs:
+        return {"error": "job not found"}
+
+    return {
+        "job_id": job_id,
+        "tool": jobs[job_id]["tool"],
+        "status": jobs[job_id]["status"]
+    }
+
+
+# ----------------------------
+# RESULT DOWNLOAD
+# ----------------------------
+@app.get("/jobs/{job_id}/result")
+def job_result(job_id: str):
+
+    jobs = getattr(app.state, "jobs", {})
+
+    if job_id not in jobs:
+        return {"error": "job not found"}
 
     path = f"/tmp/{job_id}.gif"
 
     with open(path, "wb") as f:
-        f.write(storage[job_id])
+        f.write(jobs[job_id]["file"])
 
-    return FileResponse(path, media_type="image/gif", filename="output.gif")
+    return FileResponse(
+        path,
+        media_type="image/gif",
+        filename="output.gif"
+    )
