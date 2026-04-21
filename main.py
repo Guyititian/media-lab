@@ -10,31 +10,35 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE + SMOOTHNESS UPGRADE ENGINE
+# STABLE + IMPROVED SMOOTHNESS ENGINE (v4.2)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # high-quality scaling with sharp preservation
+        # 1. Clean scaling (preserve edges)
         "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
 
-        # slight motion stabilization (prevents interpolation artifacts)
-        "hqdn3d=1.0:1.0:4:4,"
+        # 2. Light temporal cleanup BEFORE interpolation
+        "hqdn3d=0.9:0.9:3:3,"
 
-        # motion interpolation (CORE SMOOTHNESS UPGRADE)
-        "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:vsbmc=1,"
+        # 3. Motion interpolation (optimized for low-bitrate sources)
+        "minterpolate=fps=48:"
+        "mi_mode=mci:"
+        "mc_mode=aobmc:"
+        "me_mode=bidir:"
+        "vsbmc=1,"
 
-        # color enhancement (unchanged - already validated good)
+        # 4. Color enhancement (unchanged — already tuned well)
         "eq=contrast=1.08:saturation=1.25:brightness=0.01,"
 
-        # final GIF frame rate (keeps file size + compatibility stable)
+        # 5. Final GIF frame rate
         "fps=24,"
 
-        # improves color depth before palette compression
+        # 6. Safe GIF color space conversion
         "format=yuv444p,"
 
-        # palette generation + dithering control (UNCHANGED baseline)
+        # 7. Palette generation (keep your known-good behavior)
         "split[s0][s1];"
         "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
         "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
@@ -58,7 +62,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v4.1 smoothness upgrade running"}
+    return {"status": "media-lab v4.2 smoothness tuned engine running"}
 
 
 @app.post("/upload")
