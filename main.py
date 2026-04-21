@@ -10,28 +10,28 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE HIGH QUALITY PIPELINE
+# STABLE HIGH QUALITY PIPELINE (v1.2 tuned)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # 1. Normalize + preserve sharpness
-        "scale=720:-2:flags=lanczos,"
-        
-        # 2. Stabilize frame rate (IMPORTANT: no interpolation chaos)
+        # 1. Clean scaling (sharp but stable)
+        "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
+
+        # 2. Stable FPS (no interpolation changes)
         "fps=24,"
-        
-        # 3. Improve color retention BEFORE palette
-        "format=yuv444p,"
-        
-        # 4. Denoise slightly (reduces gif artifacts in flat areas)
-        "hqdn3d=1.5:1.5:6:6,"
-        
-        # 5. Palette generation pipeline (best practice)
+
+        # 3. Light denoise (preserve detail, reduce artifacts)
+        "hqdn3d=0.8:0.8:3:3,"
+
+        # 4. Proper GIF-compatible color space
+        "format=yuv420p,"
+
+        # 5. Palette pipeline (stabilized colors)
         "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-        "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
+        "[s0]palettegen=max_colors=256:stats_mode=single[p];"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
     )
 
     command = [
@@ -53,7 +53,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab stable gif engine v1"}
+    return {"status": "media-lab stable gif engine v1.2 tuned"}
 
 
 @app.post("/upload")
