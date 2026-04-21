@@ -10,45 +10,43 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE + ENHANCED GIF ENGINE
+# BALANCED GIF ENGINE v5
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # high-quality scaling with sharp preservation
+        # sharper scaling, but slightly less aggressive than v4
         "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
 
-        # color enhancement BEFORE quantization (critical improvement)
-        "eq=contrast=1.08:saturation=1.25:brightness=0.01,"
+        # selective contrast (protects shadows/highlights better than eq)
+        "curves=preset=medium_contrast,"
 
-        # stable frame rate baseline (no interpolation yet)
+        # mild saturation boost (reduced to prevent flat-area artifacts)
+        "eq=saturation=1.15:brightness=0.01,"
+
+        # stabilize motion perception
         "fps=24,"
 
-        # improves color depth before palette compression
-        "format=yuv444p,"
+        # preserve better gradients before quantization
+        "format=yuv420p,"
 
-        # mild denoise to reduce flat-area banding/artifacts
-        "hqdn3d=1.2:1.2:6:6,"
+        # reduce banding while avoiding over-dithering
+        "hqdn3d=1.0:1.0:4:4,"
 
-        # GIF palette generation + dithering control
+        # palette system tuned for stability over intensity
         "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-        "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
+        "[s0]palettegen=max_colors=256:stats_mode=diff:reserve_transparent=0[p];"
+        "[s1][p]paletteuse=dither=floyd_steinberg:bayer_scale=1"
     )
 
     command = [
         ffmpeg,
         "-y",
         "-i", input_path,
-
-        # IMPORTANT: avoid conflicting FPS flags (fixes your earlier crashes)
         "-vf", vf,
         "-loop", "0",
-
-        # safety cap for huge outputs
         "-fs", "10M",
-
         output_path
     ]
 
@@ -60,7 +58,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v4 stable + color enhancement running"}
+    return {"status": "media-lab v5 balanced engine running"}
 
 
 @app.post("/upload")
@@ -77,14 +75,12 @@ async def upload(file: UploadFile = File(...)):
 
         build_gif(input_path, output_path)
 
-        # validate output
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
             return {"job_id": job_id, "error": "conversion failed"}
 
         with open(output_path, "rb") as f:
             gif_data = f.read()
 
-    # in-memory storage (simple + Render-safe)
     app.state.storage = getattr(app.state, "storage", {})
     app.state.storage[job_id] = gif_data
 
