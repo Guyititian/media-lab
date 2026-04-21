@@ -10,19 +10,19 @@ app = FastAPI()
 
 
 # ----------------------------
-# GIF ENGINE v5.2 (QUALITY BOOST)
+# GIF ENGINE v5.3 (STABILITY FIRST)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
         # ----------------------------
-        # mild perceptual sharpening (safe, avoids palette damage)
+        # mild normalization (reduces color instability)
         # ----------------------------
-        "unsharp=3:3:0.6:3:3:0.3,"
+        "eq=contrast=1.05:saturation=1.08:brightness=0.01,"
 
         # ----------------------------
-        # clean scaling (preserve edges, avoid blur)
+        # clean scaling (no artifacts introduced)
         # ----------------------------
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
 
@@ -32,15 +32,16 @@ def build_gif(input_path, output_path):
         "fps=24,"
 
         # ----------------------------
-        # palette pipeline (improved color fidelity)
+        # palette generation (STABLE MODE - avoids frame-to-frame drift)
         # ----------------------------
         "split[s0][s1];"
-        "[s0]palettegen=max_colors=256:stats_mode=diff:reserve_transparent=0[p];"
+        "[s0]palettegen=max_colors=256:stats_mode=single:reserve_transparent=0[p];"
 
         # ----------------------------
-        # improved dithering for cleaner gradients + less artifacting
+        # IMPORTANT CHANGE:
+        # remove noisy dithering completely
         # ----------------------------
-        "[s1][p]paletteuse=dither=sierra2_4a"
+        "[s1][p]paletteuse=dither=none"
     )
 
     command = [
@@ -69,7 +70,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v5.2 quality GIF engine running"}
+    return {"status": "media-lab v5.3 stability GIF engine running"}
 
 
 @app.post("/upload")
