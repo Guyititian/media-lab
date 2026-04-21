@@ -15,31 +15,31 @@ PRESETS = {
     },
 
     "fluid_motion_v1": {
-        "label": "Fluid Motion (Optimized)",
-        "description": "Balanced smoothness with improved sharpness and vivid color.",
+        "label": "Fluid Motion (Palette Optimized)",
+        "description": "Improved color stability and sharper perceived edges with optimized palette generation.",
         "vf": (
-            # keep resolution stable (avoid memory spikes)
+            # stable geometry (no change)
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
 
-            # 🔥 stronger perceived sharpness (key improvement)
+            # keep your proven sharpness + color base
             "unsharp=5:5:1.0:3:3:0.5,"
-
-            # 🔥 color improvement without overblowing artifacts
             "eq=contrast=1.12:saturation=1.35:brightness=0.01,"
 
-            # IMPORTANT: locked to 48fps (your conclusion was correct)
+            # locked motion (correct decision you made)
             "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:me_mode=bidir,"
 
-            # better gradient preservation (helps text/logos)
+            # color preservation baseline
             "format=yuv444p,"
 
-            # light denoise only (avoid softening edges)
-            "hqdn3d=0.8:0.8:2:2,"
+            # lighter denoise to avoid “muddying” edges
+            "hqdn3d=0.7:0.7:2:2,"
 
-            # improved palette handling for color richness
+            # 🔥 KEY CHANGE: better palette generation strategy
             "split[s0][s1];"
-            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-            "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
+            "[s0]palettegen=max_colors=256:stats_mode=single:reserve_transparent=0:stats_mode=diff[p];"
+
+            # 🔥 KEY CHANGE: improved dithering behavior (less shimmer)
+            "[s1][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle:bayer_scale=0"
         )
     }
 }
