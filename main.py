@@ -10,31 +10,40 @@ app = FastAPI()
 
 
 # ----------------------------
-# STABLE GIF ENGINE (FFmpeg 7 FIXED)
+# GIF ENGINE (QUALITY FIXED FULL PIPELINE)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
+        # remove compression noise FIRST (fixes green/background artifacts)
+        "hqdn3d=1.5:1.5:6:6,"
+
+        # scale with high-quality resampling
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
+
+        # mild normalization (prevents washed-out greens without overboosting)
+        "eq=saturation=1.08:contrast=1.05:gamma=1.02,"
+
+        # stable frame rate
         "fps=24,"
+
+        # clean palette generation (important for flat UI backgrounds)
         "split[s0][s1];"
-        "[s0]palettegen=stats_mode=diff:max_colors=256[p];"
-        "[s1][p]paletteuse=dither=floyd_steinberg"
+        "[s0]palettegen=stats_mode=single:max_colors=256:reserve_transparent=0[p];"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
     )
 
     command = [
         ffmpeg,
         "-y",
         "-i", input_path,
-
         "-vf", vf,
 
-        # ✅ FIX: modern FFmpeg timing mode (replaces -r + -vsync conflict)
+        # FFmpeg 7 safe timing mode
         "-fps_mode", "cfr",
 
         "-loop", "0",
-
         output_path
     ]
 
@@ -54,7 +63,8 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab ffmpeg7 stable fix"}
+    return {"status": "media-lab gif engine (quality fixed build)"}
+
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
