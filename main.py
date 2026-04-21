@@ -10,42 +10,20 @@ app = FastAPI()
 
 
 # ----------------------------
-# GIF ENGINE v5 (balanced quality)
+# SAFE GIF ENGINE (v5.1 - guaranteed playback baseline)
 # ----------------------------
 def build_gif(input_path, output_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
     vf = (
-        # ----------------------------
-        # 1. light sharpness enhancement (safe global clarity boost)
-        # ----------------------------
-        "unsharp=5:5:0.8:3:3:0.4,"
-        
-        # ----------------------------
-        # 2. clean scaling (preserve edges, avoid blur)
-        # ----------------------------
+        # ONLY safe transforms (no risk filters)
         "scale=640:-1:flags=lanczos:force_original_aspect_ratio=decrease,"
-        
-        # ----------------------------
-        # 3. stabilize FPS (no interpolation complexity yet)
-        # ----------------------------
         "fps=24,"
         
-        # ----------------------------
-        # 4. palette workflow split
-        # ----------------------------
-        "split[a][b];"
-        
-        # ----------------------------
-        # 5. improved palette generation
-        #    - better color distribution sampling
-        # ----------------------------
-        "[a]palettegen=max_colors=256:stats_mode=single:reserve_transparent=0[p];"
-        
-        # ----------------------------
-        # 6. controlled dithering (reduces noise + improves perceived color depth)
-        # ----------------------------
-        "[b][p]paletteuse=dither=bayer:bayer_scale=2"
+        # CRITICAL: simplest stable palette chain
+        "split[s0][s1];"
+        "[s0]palettegen[p];"
+        "[s1][p]paletteuse"
     )
 
     command = [
@@ -54,7 +32,7 @@ def build_gif(input_path, output_path):
         "-i", input_path,
         "-vf", vf,
         "-loop", "0",
-        "-fs", "8M",
+        "-f", "gif",
         output_path
     ]
 
@@ -74,7 +52,7 @@ def build_gif(input_path, output_path):
 # ----------------------------
 @app.get("/")
 def root():
-    return {"status": "media-lab v5 GIF quality engine running"}
+    return {"status": "media-lab v5.1 SAFE GIF engine running"}
 
 
 @app.post("/upload")
