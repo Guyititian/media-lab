@@ -1,4 +1,8 @@
-fastapi
-uvicorn
-python-multipart
-imageio-ffmpeg
+fastapi==0.136.0
+uvicorn==0.45.0
+python-multipart==0.0.26
+imageio-ffmpeg==0.6.0
+numpy
+
+# optional but REQUIRED if you use cv2 anywhere in code
+opencv-python-headless
