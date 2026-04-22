@@ -1,139 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Media Lab</title>
-
-<style>
-body {
-  margin:0;
-  background:#0f0f0f;
-  color:white;
-  font-family:Arial;
-}
-
-.header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:20px 30px;
-  background:#111;
-  border-bottom:1px solid #222;
-}
-
-.brand {
-  font-size:16px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.brand:hover { opacity:0.7; }
-
-.header-right {
-  font-size:12px;
-  opacity:0.6;
-}
-
-.panel {
-  max-width:520px;
-  margin:40px auto;
-  background:#1c1c1c;
-  padding:20px;
-  border-radius:12px;
-}
-
-label {
-  font-size:12px;
-  opacity:0.7;
-  display:block;
-  margin-top:10px;
-}
-
-input, select, button {
-  width:100%;
-  padding:10px;
-  margin-top:8px;
-  border:none;
-  border-radius:6px;
-}
-
-button {
-  background:white;
-  color:black;
-  cursor:pointer;
-}
-
-button:hover { opacity:0.85; }
-
-#output {
-  margin-top:15px;
-  font-size:12px;
-  word-break:break-all;
-}
-
-a { color:#7dd3fc; }
-
-.help {
-  font-size:12px;
-  opacity:0.7;
-  cursor:pointer;
-}
-.help:hover { opacity:1; }
-
-.modal {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.7);
-  display:none;
-  justify-content:center;
-  align-items:center;
-}
-
-.modal-content {
-  background:#1c1c1c;
-  padding:20px;
-  border-radius:12px;
-  max-width:420px;
-  font-size:13px;
-}
-
-.close {
-  float:right;
-  cursor:pointer;
-}
-</style>
-</head>
-
-<body>
-
-<div class="header">
-  <div class="brand" onclick="goHome()">Media-Tiles</div>
-  <div class="header-right">Media-Lab Tools</div>
-</div>
-
-<div class="panel">
-
-  <label>Upload File</label>
-  <input type="file" id="file">
-
-  <label>Preset</label>
-  <select id="preset">
-    <option value="balanced_v1">Balanced</option>
-    <option value="fluid_motion_v1">Fluid Motion</option>
-  </select>
-
-  <button onclick="runTool()">Generate</button>
-
-  <div id="output"></div>
-
-</div>
-
 <script>
-
-function goHome() {
-  window.location.href = "https://guyititian.github.io/media-tiles/";
-}
 
 const API_URL = "https://media-lab.onrender.com/upload";
 
@@ -148,9 +13,11 @@ async function runTool() {
 
   document.getElementById("output").innerText = "Processing...";
 
+  console.log("🔥 FRONTEND PRESET SENDING:", preset);
+
   const formData = new FormData();
 
-  // CRITICAL: must match backend exactly
+  // 🔥 HARD GUARANTEE FIELD NAMES
   formData.append("file", file);
   formData.append("preset", preset);
 
@@ -160,12 +27,14 @@ async function runTool() {
       body: formData
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
-    }
+    const text = await res.text();
+    console.log("🔥 RAW RESPONSE:", text);
 
-    const data = await res.json();
+    const data = JSON.parse(text);
+
+    if (data.error) {
+      throw new Error(JSON.stringify(data));
+    }
 
     const downloadUrl =
       "https://media-lab.onrender.com" + data.download_url;
@@ -180,6 +49,3 @@ async function runTool() {
 }
 
 </script>
-
-</body>
-</html>
