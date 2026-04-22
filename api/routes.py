@@ -1,5 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+import shutil
 import os
 import uuid
 
@@ -8,37 +8,58 @@ from tools.gif_motion import generate_gif
 router = APIRouter()
 
 UPLOAD_DIR = "uploads"
-OUTPUT_DIR = "outputs"
-
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 @router.post("/upload")
-async def upload(
+async def upload_file(
     file: UploadFile = File(...),
-    tool: str = Form("gif_motion"),
-    preset: str = Form("balanced_v1")
+    tool: str = Form(...),
+    preset: str = Form(...)
 ):
     try:
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🔥 TOOL:", tool)
-        print("🔥 RAW PRESET:", preset)
+        # -------------------------
+        # VALIDATE TOOL (future-proofing)
+        # -------------------------
+        if tool != "gif_motion":
+            raise HTTPException(status_code=400, detail="Invalid tool")
 
-        file_id = str(uuid.uuid4())
-        input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{file.filename}")
+        # -------------------------
+        # SAVE INPUT FILE
+        # -------------------------
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-        with open(input_path, "wb") as f:
-            f.write(await file.read())
+        input_filename = f"{uuid.uuid4()}_{file.filename}"
+        input_path = os.path.join(UPLOAD_DIR, input_filename)
 
-        output_path = generate_gif(input_path, preset, OUTPUT_DIR)
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-        filename = os.path.basename(output_path)
+        # -------------------------
+        # PROCESS THROUGH TOOL
+        # -------------------------
+        # IMPORTANT: MUST return dict ONLY
+        result = generate_gif(
+            input_path=input_path,
+            preset=preset
+        )
 
-        return JSONResponse({
-            "output_url": f"/outputs/{filename}"
-        })
+        # -------------------------
+        # VALIDATE OUTPUT
+        # -------------------------
+        if not isinstance(result, dict):
+            raise HTTPException(
+                status_code=500,
+                detail="Tool did not return dict response"
+            )
+
+        if "output_url" not in result:
+            raise HTTPException(
+                status_code=500,
+                detail="Missing output_url from tool"
+            )
+
+        return result
 
     except Exception as e:
-        print("❌ ERROR:", str(e))
-        return JSONResponse({"error": str(e)}, status_code=500)
+        print("❌ ROUTE ERROR:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
