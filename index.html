@@ -59,7 +59,7 @@ body {
 }
 
 .panel {
-  max-width:500px;
+  max-width:520px;
   margin:30px auto;
   background:#1c1c1c;
   padding:20px;
@@ -67,7 +67,7 @@ body {
   display:none;
 }
 
-input, button {
+input[type="file"], button {
   width:100%;
   padding:10px;
   margin-top:10px;
@@ -98,7 +98,7 @@ button:hover {
 
 <div class="header">
   <h1>🛠 Media Lab</h1>
-  <p>Bring your own media → process → download outputs</p>
+  <p>Upload media → process → download output</p>
 </div>
 
 <div class="grid">
@@ -119,7 +119,8 @@ button:hover {
 
   <h3 id="toolTitle"></h3>
 
-  <input id="inputUrl" placeholder="Paste image URL">
+  <!-- FILE UPLOAD (THIS IS THE KEY CHANGE) -->
+  <input type="file" id="fileInput">
 
   <button onclick="runTool()">Run Tool</button>
 
@@ -130,34 +131,33 @@ button:hover {
 <script>
 let currentTool = null;
 
-/* ---------------------------
-   SET YOUR RENDER URL HERE
-----------------------------*/
-const API_BASE = "https://media-lab.onrender.com";
+const API_BASE = "https://YOUR-RENDER-URL.onrender.com";
 
 function openTool(tool) {
   currentTool = tool;
-
   document.getElementById("panel").style.display = "block";
   document.getElementById("toolTitle").innerText = "Tool: " + tool;
   document.getElementById("output").innerText = "";
 }
 
 async function runTool() {
-  const url = document.getElementById("inputUrl").value;
+  const file = document.getElementById("fileInput").files[0];
 
-  document.getElementById("output").innerText = "Processing...";
+  if (!file) {
+    document.getElementById("output").innerText = "Please select a file.";
+    return;
+  }
+
+  document.getElementById("output").innerText = "Uploading...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("tool", currentTool);
 
   try {
     const res = await fetch(`${API_BASE}/api/run`, {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        tool: currentTool,
-        input: {
-          image_url: url
-        }
-      })
+      body: formData
     });
 
     const data = await res.json();
