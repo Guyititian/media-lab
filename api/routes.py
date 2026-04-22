@@ -49,7 +49,7 @@ async def run_tool(
     # -------------------------
     # PUBLIC OUTPUT URL
     # -------------------------
-    output_url = f"https://YOUR-RENDER-SERVICE.onrender.com/outputs/{file_id}.gif"
+    output_url = f"https://media-lab.onrender.com/outputs/{file_id}.gif"
 
     return {
         "tool": tool,
