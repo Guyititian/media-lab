@@ -164,8 +164,16 @@ async function runTool() {
       throw new Error("Missing output_url");
     }
 
-    const finalUrl = new URL(data.output_url, "https://media-lab.onrender.com").href;
+    const urlPart =
+  typeof data.output_url === "string"
+    ? data.output_url
+    : data.output_url.output_url;
 
+const finalUrl = new URL(
+  urlPart,
+  "https://media-lab.onrender.com"
+).href;
+  
     console.log("FINAL URL:", finalUrl);
 
     outputEl.innerHTML =
