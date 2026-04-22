@@ -2,15 +2,8 @@ import os
 import uuid
 import subprocess
 
-# =========================================================
-# PRESET SYSTEM (STRICT + FULL PIPELINES)
-# =========================================================
-
 PRESETS = {
 
-    # -------------------------
-    # BALANCED (STABLE / SMALL)
-    # -------------------------
     "balanced_v1": {
         "vf": (
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
@@ -23,9 +16,6 @@ PRESETS = {
         )
     },
 
-    # -------------------------
-    # FLUID MOTION (HIGH QUALITY)
-    # -------------------------
     "fluid_motion_v1": {
         "vf": (
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
@@ -41,46 +31,28 @@ PRESETS = {
 }
 
 
-# =========================================================
-# BACKWARD-COMPATIBLE ENTRY POINT (FIXES IMPORT CRASH)
-# =========================================================
-
 def generate_gif(input_path: str, preset: str, output_dir: str = "outputs"):
     """
-    This is the ONLY function your API should call.
-    Fixes previous ImportError AND enforces preset isolation.
+    Core FFmpeg tool engine.
+    MUST return dict for API consistency.
     """
 
-    # -------------------------
-    # VALIDATION (NO SILENT FALLBACK BLENDING)
-    # -------------------------
     if preset not in PRESETS:
-        raise ValueError(f"Invalid preset: {preset}. Must be one of {list(PRESETS.keys())}")
+        raise ValueError(f"Invalid preset: {preset}. Must be {list(PRESETS.keys())}")
 
     vf = PRESETS[preset]["vf"]
 
-    # -------------------------
-    # OUTPUT SETUP
-    # -------------------------
     os.makedirs(output_dir, exist_ok=True)
 
     output_file = f"{uuid.uuid4()}.gif"
     output_path = os.path.join(output_dir, output_file)
 
-    # -------------------------
-    # DEBUG LOGGING (IMPORTANT FOR YOU)
-    # -------------------------
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("🔥 GIF MOTION ENGINE")
-    print("🔥 INPUT:", input_path)
+    print("🔥 TOOL: gif_motion")
     print("🔥 PRESET:", preset)
-    print("🔥 FILTER PIPELINE:")
-    print(vf)
+    print("🔥 INPUT:", input_path)
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-    # -------------------------
-    # FFMPEG EXECUTION
-    # -------------------------
     cmd = [
         "ffmpeg",
         "-y",
