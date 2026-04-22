@@ -21,7 +21,7 @@ PRESETS = {
         "description": "Balanced smoothness with improved sharpness and vivid color.",
         "vf": (
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "unsharp=5:5:1.0:3:3:0.5,"
+            "unsharp=3:3:0.8:3:3:0.4,"
             "eq=contrast=1.12:saturation=1.35:brightness=0.01,"
             "minterpolate=fps=36:mi_mode=mci:mc_mode=aobmc:me_mode=bidir,"
             "format=yuv444p,"
@@ -30,13 +30,29 @@ PRESETS = {
             "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
             "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
         )
+    },
+
+    "cinematic_v1": {
+        "label": "Cinematic (Fluid Base)",
+        "description": "Fluid motion base with filmic tone shaping and subtle grain.",
+        "vf": (
+            "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
+            "unsharp=3:3:0.8:3:3:0.4,"
+            "eq=contrast=1.18:saturation=1.28:brightness=0.02:gamma=0.98,"
+            "minterpolate=fps=36:mi_mode=mci:mc_mode=aobmc:me_mode=bidir,"
+            "format=yuv444p,"
+            "hqdn3d=0.6:0.6:2:2,"
+            "noise=alls=8:allf=t+u,"
+            "split[s0][s1];"
+            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+            "[s1][p]paletteuse=dither=sierra2_4a"
+        )
     }
 }
 
 
-# ✅ ADD THIS (THIS FIXES YOUR CRASH)
 def get_preset(name: str):
     preset = PRESETS.get(name)
     if not preset:
-        raise ValueError(f"Invalid preset: {name}")
+        raise ValueError(f"Unknown preset: {name}")
     return preset
