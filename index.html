@@ -96,6 +96,7 @@ button {
   <select id="preset">
     <option value="balanced_v1">Balanced</option>
     <option value="fluid_motion_v1">Fluid Motion</option>
+    <option value="cinematic_v1">Cinematic</option>
   </select>
 
   <button onclick="runTool()">Run Tool</button>
@@ -119,6 +120,10 @@ async function runTool() {
     const tool = document.getElementById("tool").value;
     const preset = document.getElementById("preset").value;
 
+    console.log("INPUT FILE:", file);
+    console.log("INPUT TOOL:", tool);
+    console.log("INPUT PRESET:", preset);
+
     if (!file) {
       outputEl.innerText = "Please select a file.";
       return;
@@ -136,6 +141,9 @@ async function runTool() {
       body: formData
     });
 
+    console.log("STATUS:", res.status);
+    console.log("OK:", res.ok);
+
     const raw = await res.text();
     console.log("RAW RESPONSE:", raw);
 
@@ -143,29 +151,34 @@ async function runTool() {
     try {
       data = JSON.parse(raw);
     } catch (e) {
-      console.error("NON-JSON RESPONSE:", raw);
-      throw new Error("Server returned invalid response (not JSON)");
+      console.error("JSON PARSE ERROR:", e);
+      throw new Error("Invalid JSON from backend");
     }
 
-    if (!data || typeof data !== "object") {
-      throw new Error("Invalid backend response structure");
-    }
+    console.log("PARSED DATA:", data);
 
-    if (data.success === false) {
-      throw new Error(data.error || "Backend error");
+    if (!res.ok) {
+      throw new Error(data.error || "Request failed");
     }
 
     if (!data.output_url) {
       throw new Error("Missing output_url");
     }
 
+    const urlPart =
+      typeof data.output_url === "string"
+        ? data.output_url
+        : data.output_url.output_url;
+
     const finalUrl = new URL(
-      data.output_url,
+      urlPart,
       "https://media-lab.onrender.com"
     ).href;
 
+    console.log("FINAL URL:", finalUrl);
+
     outputEl.innerHTML =
-      `<a href="${finalUrl}" target="_blank" download>Download GIF</a>`;
+      `<a href="${finalUrl}" target="_blank">Download GIF</a>`;
 
   } catch (err) {
     console.error("FULL ERROR:", err);
