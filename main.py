@@ -6,7 +6,7 @@ from api.routes import router
 app = FastAPI()
 
 # ----------------------------
-# FULL CORS FIX (CRITICAL)
+# CORS (required for Media-Tiles frontend)
 # ----------------------------
 app.add_middleware(
     CORSMiddleware,
