@@ -1,5 +1,5 @@
-import subprocess
 import imageio_ffmpeg
+import subprocess
 
 
 def build_gif(input_path, output_path, vf):
