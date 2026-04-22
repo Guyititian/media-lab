@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 # ----------------------------
-# UPLOAD ROUTE
+# UPLOAD (HARD DEBUG VERSION)
 # ----------------------------
 @router.post("/upload")
 async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
@@ -20,45 +20,45 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     input_path = f"/tmp/{job_id}_input.mp4"
     output_path = f"/tmp/{job_id}_output.gif"
 
-    print("🔥 PRESET RECEIVED:", preset)
+    # 🔥 HARD DEBUG LOGS
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("🔥 REQUEST RECEIVED")
+    print("🔥 RAW PRESET:", preset)
 
-    # Save uploaded file
     contents = await file.read()
+
     with open(input_path, "wb") as f:
         f.write(contents)
 
-    # Validate preset
+    # 🔥 STRICT VALIDATION (NO SILENT FALLBACKS)
     if preset not in PRESETS:
-        print("❌ INVALID PRESET:", preset)
+        print("❌ INVALID PRESET RECEIVED:", preset)
         return {
-            "job_id": job_id,
-            "error": f"invalid preset: {preset}"
+            "error": "invalid_preset",
+            "received": preset,
+            "allowed": list(PRESETS.keys())
         }
 
     vf = PRESETS[preset]["vf"]
 
-    print("🔥 APPLYING PRESET:", PRESETS[preset]["label"])
-    print("🔥 VF START:", vf[:120])
+    print("🔥 VALID PRESET CONFIRMED:", PRESETS[preset]["label"])
+    print("🔥 VF SAMPLE:", vf[:150])
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-    # Run FFmpeg pipeline
     build_gif(input_path, output_path, vf)
 
-    # Validate output exists
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-        return {
-            "job_id": job_id,
-            "error": "conversion_failed"
-        }
+        return {"error": "conversion_failed", "preset": preset}
 
     return {
         "job_id": job_id,
-        "download_url": f"/download/{job_id}",
-        "preset": preset
+        "preset": preset,
+        "download_url": f"/download/{job_id}"
     }
 
 
 # ----------------------------
-# DOWNLOAD ROUTE
+# DOWNLOAD
 # ----------------------------
 @router.get("/download/{job_id}")
 def download(job_id: str):
@@ -66,26 +66,10 @@ def download(job_id: str):
     path = f"/tmp/{job_id}_output.gif"
 
     if not os.path.exists(path):
-        return {
-            "error": "file_not_found",
-            "job_id": job_id
-        }
+        return {"error": "file_not_found", "job_id": job_id}
 
     return FileResponse(
         path,
         media_type="image/gif",
         filename="output.gif"
     )
-
-
-# ----------------------------
-# OPTIONAL: TOOL DISCOVERY
-# ----------------------------
-@router.get("/tools")
-def tools():
-    return {
-        "gif_motion": {
-            "name": "GIF Motion",
-            "presets": list(PRESETS.keys())
-        }
-    }
