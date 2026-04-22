@@ -3,7 +3,8 @@
 import os
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form
-from tools.gif_motion import generate_gif, PRESETS
+from tools.gif_motion import generate_gif
+from core.presets import PRESETS
 
 router = APIRouter()
 
