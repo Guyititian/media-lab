@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 # ----------------------------
-# UPLOAD ENDPOINT
+# UPLOAD
 # ----------------------------
 @router.post("/upload")
 async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
@@ -21,33 +21,35 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     output_path = f"/tmp/{job_id}_output.gif"
     final_path = f"/tmp/{job_id}.gif"
 
-    # Save upload
+    # DEBUG (THIS IS IMPORTANT — CONFIRMS FRONTEND VALUE)
+    print("🔥 PRESET RECEIVED:", preset)
+
     contents = await file.read()
     with open(input_path, "wb") as f:
         f.write(contents)
 
-    # Validate preset
+    # HARD VALIDATION (DO NOT SILENT FALLBACK ANYMORE)
     if preset not in PRESETS:
-        preset = "balanced_v1"
+        return {
+            "job_id": job_id,
+            "error": f"invalid_preset_received: {preset}"
+        }
 
     vf = PRESETS[preset]["vf"]
 
-    # Run GIF pipeline
     build_gif(input_path, output_path, vf)
 
-    # Validate output exists
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
         return {
             "job_id": job_id,
             "error": "conversion_failed"
         }
 
-    # Read and persist to disk (IMPORTANT FIX)
     with open(output_path, "rb") as f:
-        gif_bytes = f.read()
+        data = f.read()
 
     with open(final_path, "wb") as f:
-        f.write(gif_bytes)
+        f.write(data)
 
     return {
         "job_id": job_id,
@@ -58,7 +60,7 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
 
 
 # ----------------------------
-# DOWNLOAD ENDPOINT
+# DOWNLOAD
 # ----------------------------
 @router.get("/download/{job_id}")
 def download(job_id: str):
@@ -75,7 +77,7 @@ def download(job_id: str):
 
 
 # ----------------------------
-# TOOLS ENDPOINT
+# TOOLS
 # ----------------------------
 @router.get("/tools")
 def tools():
