@@ -2,131 +2,284 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Media Tiles</title>
+<title>Media-Lab</title>
 
 <style>
 body {
-  margin:0;
-  background:#070707;
-  color:white;
-  font-family:Arial;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+  margin: 0;
+  font-family: Arial;
+  background: #0f0f0f;
+  color: white;
 }
 
-/* ROOT STACK */
-.container {
-  text-align:center;
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #111;
+  border-bottom: 1px solid #222;
 }
 
-/* =========================
-   FLOATING BRAND OBJECT
-========================= */
 .brand {
-  font-size:64px;
-  font-weight:600;
-
-  padding:26px 54px;
-  border-radius:24px;
-
-  display:inline-block;
-
-  background: rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.10);
-
-  box-shadow:
-    0 30px 90px rgba(0,0,0,0.85),
-    0 0 60px rgba(255,255,255,0.12);
-
-  backdrop-filter: blur(14px);
-
-  letter-spacing:1px;
-
-  margin-bottom:50px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-.sub {
-  font-size:13px;
-  opacity:0.55;
-  margin-top:-35px;
-  margin-bottom:50px;
+.brand:hover { opacity: 0.7; }
+
+/* MAIN */
+.container {
+  max-width: 600px;
+  margin: 40px auto;
+  background: #1b1b1b;
+  padding: 20px;
+  border-radius: 10px;
 }
 
-/* =========================
-   NAV CARDS (BIGGER + WEIGHTED)
-========================= */
-.cards {
-  display:flex;
-  justify-content:center;
-  gap:50px;
+/* INPUTS */
+label {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.7;
 }
 
-.card {
-  width:380px;
-  padding:30px;
-
-  border-radius:20px;
-
-  background: rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.08);
-
-  box-shadow: 0 25px 70px rgba(0,0,0,0.7);
-
-  cursor:pointer;
-
-  transition:0.25s;
+input, button {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
 }
 
-.card:hover {
-  transform:translateY(-12px);
-  box-shadow:
-    0 40px 110px rgba(0,0,0,0.9),
-    0 0 40px rgba(255,255,255,0.12);
+button {
+  margin-top: 16px;
+  background: white;
+  color: black;
+  cursor: pointer;
 }
 
-.card h2 {
-  margin:0 0 12px;
-  font-size:22px;
+/* STATUS */
+#status {
+  margin-top: 16px;
+  font-size: 13px;
+  opacity: 0.8;
 }
 
-.card p {
-  font-size:13px;
-  opacity:0.7;
-  line-height:1.4;
+/* LOADER */
+.loader {
+  margin-top: 12px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #444;
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: none;
 }
 
-/* FOOTER */
-.footer {
-  margin-top:60px;
-  font-size:12px;
-  opacity:0.35;
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* PRESET TILES */
+.presetGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.presetCard {
+  padding: 12px;
+  border-radius: 8px;
+  background: #111;
+  border: 1px solid #222;
+  cursor: pointer;
+}
+
+.presetCard:hover {
+  border-color: #555;
+}
+
+.presetCard.active {
+  border-color: white;
+  background: #1a1a1a;
+}
+
+.presetTitle {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.presetDesc {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* OUTPUT */
+#output {
+  margin-top: 16px;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.resultCard {
+  margin-top: 12px;
+  padding: 12px;
+  background: #111;
+  border-radius: 8px;
+  border: 1px solid #222;
+}
+
+a {
+  color: #00d1ff;
 }
 </style>
 </head>
 
 <body>
 
+<div class="header">
+  <div class="brand" onclick="goHome()">Media-Tiles</div>
+  <div>Media-Lab Tools</div>
+</div>
+
 <div class="container">
 
-  <div class="brand">Media Tiles</div>
+  <h2>GIF Motion Tool</h2>
 
-  <div class="sub">Ecosystem for media browsing and transformation</div>
+  <label>Upload File</label>
+  <input type="file" id="file">
 
-  <div class="cards">
-    <div class="card" onclick="window.location.href='./browse.html'">
-      <h2>Library</h2>
-      <p>Browse curated collections and copy media asset links.</p>
+  <label>Preset</label>
+
+  <div class="presetGrid">
+
+    <div class="presetCard active" onclick="selectPreset('balanced_v1', this)">
+      <div class="presetTitle">Balanced</div>
+      <div class="presetDesc">Stable output. Clean motion, low artifacts.</div>
     </div>
 
-    <div class="card" onclick="window.location.href='https://guyititian.github.io/media-lab/'">
-      <h2>Tools</h2>
-      <p>Upload media and process it through motion + GIF pipelines.</p>
+    <div class="presetCard" onclick="selectPreset('fluid_motion_v1', this)">
+      <div class="presetTitle">Fluid Motion</div>
+      <div class="presetDesc">Smoother motion with stronger interpolation.</div>
     </div>
+
+    <div class="presetCard" onclick="selectPreset('cinematic_v1', this)">
+      <div class="presetTitle">Cinematic</div>
+      <div class="presetDesc">High intensity visual motion + enhanced depth.</div>
+    </div>
+
   </div>
 
+  <input type="hidden" id="preset" value="balanced_v1">
+
+  <button onclick="runTool()">Run Tool</button>
+
+  <div class="loader" id="loader"></div>
+  <div id="status"></div>
+  <div id="output"></div>
 </div>
+
+<script>
+
+const API_URL = "https://media-lab.onrender.com/upload";
+
+function goHome() {
+  window.location.href = "https://guyititian.github.io/media-tiles/";
+}
+
+/* PRESET SELECTOR */
+function selectPreset(value, el) {
+  document.getElementById("preset").value = value;
+
+  document.querySelectorAll(".presetCard")
+    .forEach(c => c.classList.remove("active"));
+
+  el.classList.add("active");
+}
+
+/* SAFE FETCH PIPELINE (FIXED) */
+async function runTool() {
+  const outputEl = document.getElementById("output");
+  const statusEl = document.getElementById("status");
+  const loader = document.getElementById("loader");
+
+  try {
+    const file = document.getElementById("file").files[0];
+    const preset = document.getElementById("preset").value;
+    const tool = "gif_motion";
+
+    if (!file) {
+      outputEl.innerText = "Please select a file.";
+      return;
+    }
+
+    outputEl.innerHTML = "";
+    statusEl.innerText = "Processing...";
+    loader.style.display = "block";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tool", tool);
+    formData.append("preset", preset);
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: formData
+    });
+
+    /* IMPORTANT: ALWAYS READ AS TEXT FIRST */
+    const raw = await res.text();
+    console.log("RAW RESPONSE:", raw);
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      throw new Error("Backend did not return valid JSON");
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || "Request failed");
+    }
+
+    /* BACKWARD COMPATIBLE OUTPUT RESOLUTION */
+    const urlPart =
+      data.output_url ||
+      data?.data?.output_url ||
+      data?.url;
+
+    if (!urlPart) {
+      throw new Error("Missing output_url in response");
+    }
+
+    const finalUrl = new URL(
+      urlPart,
+      "https://media-lab.onrender.com"
+    ).href;
+
+    loader.style.display = "none";
+    statusEl.innerText = "Complete ✔";
+
+    outputEl.innerHTML = `
+      <div class="resultCard">
+        <div>Output ready</div>
+        <a href="${finalUrl}" target="_blank">Download GIF</a>
+      </div>
+    `;
+
+  } catch (err) {
+    console.error("FULL ERROR:", err);
+    loader.style.display = "none";
+    statusEl.innerText = "";
+    outputEl.innerText = "ERROR: " + err.message;
+  }
+}
+
+</script>
 
 </body>
 </html>
