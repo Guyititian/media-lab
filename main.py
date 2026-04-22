@@ -1,19 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from api.routes import router
 
 app = FastAPI()
 
 # =====================================================
-# 🔥 CORS CONFIG (CRITICAL FOR GITHUB PAGES FRONTEND)
+# CORS (FIXES "LOAD FAILED" FROM FRONTEND)
 # =====================================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://guyititian.github.io",
-        "http://localhost:3000",
-        "http://127.0.0.1:5500"
+        "https://guyititian.github.io/media-lab",
+        "https://guyititian.github.io/media-tiles"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -21,14 +22,16 @@ app.add_middleware(
 )
 
 # =====================================================
-# ROUTES
+# API ROUTES
 # =====================================================
 app.include_router(router)
+
+# =====================================================
+# STATIC FILES (DOWNLOAD OUTPUTS)
+# =====================================================
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 
 @app.get("/")
 def root():
-    return {
-        "status": "media-lab online",
-        "message": "API running"
-    }
+    return {"status": "media-lab online"}
