@@ -1,23 +1,33 @@
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-import os
-
 from api.routes import router
 
-app = FastAPI()
+app = FastAPI(
+    title="Media-Lab",
+    description="Media processing toolkit (GIF Motion Engine + future tools)",
+    version="1.0.0"
+)
 
-# -------------------------
-# API ROUTES
-# -------------------------
+# Register API routes
 app.include_router(router)
 
-# -------------------------
-# OUTPUT FILE STORAGE
-# -------------------------
-os.makedirs("outputs", exist_ok=True)
 
-app.mount(
-    "/outputs",
-    StaticFiles(directory="outputs"),
-    name="outputs"
-)
+# ----------------------------
+# HEALTH CHECK
+# ----------------------------
+@app.get("/")
+def root():
+    return {
+        "status": "online",
+        "service": "media-lab",
+        "message": "GIF Motion Engine running"
+    }
+
+
+# ----------------------------
+# SIMPLE DEBUG ENDPOINT
+# ----------------------------
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy"
+    }
