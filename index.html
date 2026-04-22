@@ -87,6 +87,7 @@ button {
 #output {
   margin-top:15px;
   font-size:12px;
+  word-break:break-all;
 }
 
 /* HELP */
@@ -136,11 +137,6 @@ button {
   <div class="tool-card active" onclick="selectTool('gif_motion')" id="tool_gif_motion">
     GIF Motion
   </div>
-
-  <!-- FUTURE TOOLS -->
-  <!--
-  <div class="tool-card">Upscale</div>
-  -->
 </div>
 
 <!-- CONFIG PANEL -->
@@ -151,13 +147,11 @@ button {
   <label>Upload File</label>
   <input type="file" id="file">
 
-  <label>Preset 
-    <span class="help" onclick="openModal()">?</span>
-  </label>
+  <label>Preset <span class="help" onclick="openModal()">?</span></label>
 
   <select id="preset">
-    <option value="balanced_v1">Balanced</option>
-    <option value="fluid_motion_v1">Fluid Motion</option>
+    <option value="balanced">Balanced</option>
+    <option value="fluid_motion">Fluid Motion</option>
   </select>
 
   <button onclick="runTool()">Run Tool</button>
@@ -166,17 +160,15 @@ button {
 
 </div>
 
-<!-- PRESET MODAL -->
+<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-content">
     <span class="close" onclick="closeModal()">✕</span>
+
     <h3>Preset Guide</h3>
 
-    <p><b>Balanced</b><br>
-    Stable motion and optimized file size.</p>
-
-    <p><b>Fluid Motion</b><br>
-    Smoother motion using more interpolation.</p>
+    <p><b>Balanced</b><br>Stable motion and optimized file size.</p>
+    <p><b>Fluid Motion</b><br>Smoother motion using interpolation.</p>
 
   </div>
 </div>
@@ -191,11 +183,12 @@ function goHome() {
 function selectTool(tool) {
   currentTool = tool;
 
-  document.querySelectorAll(".tool-card").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".tool-card")
+    .forEach(el => el.classList.remove("active"));
+
   document.getElementById("tool_" + tool).classList.add("active");
 
-  document.getElementById("toolTitle").innerText =
-    tool === "gif_motion" ? "GIF Motion" : tool;
+  document.getElementById("toolTitle").innerText = "GIF Motion";
 }
 
 function openModal() {
@@ -210,7 +203,7 @@ const API_URL = "https://media-lab.onrender.com/upload";
 
 async function runTool() {
   const file = document.getElementById("file").files[0];
-  const preset = document.getElementById("preset").value;
+  const presetUI = document.getElementById("preset").value;
 
   if (!file) {
     document.getElementById("output").innerText = "Select a file.";
@@ -219,10 +212,18 @@ async function runTool() {
 
   document.getElementById("output").innerText = "Processing...";
 
+  /* =====================================================
+     CRITICAL: MATCH BACKEND PRESET KEYS EXACTLY
+  ===================================================== */
+  const presetMap = {
+    balanced: "balanced_v1",
+    fluid_motion: "fluid_motion_v1"
+  };
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("tool", currentTool);
-  formData.append("preset", preset);
+  formData.append("preset", presetMap[presetUI]);
 
   try {
     const res = await fetch(API_URL, {
@@ -230,13 +231,33 @@ async function runTool() {
       body: formData
     });
 
-    const data = await res.json();
+    /* FORCE TEXT FIRST (prevents silent JSON parse failures) */
+    const text = await res.text();
+
+    console.log("RAW RESPONSE:", text);
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error("Invalid JSON from server: " + text);
+    }
+
+    if (!res.ok || data.error) {
+      throw new Error(data.error || "Server error");
+    }
+
+    const downloadUrl =
+      "https://media-lab.onrender.com" + data.output_url;
 
     document.getElementById("output").innerHTML =
-      "<a href='" + data.output_url + "' target='_blank'>Download Output</a>";
+      "<a href='" + downloadUrl + "' target='_blank'>Download Output</a>";
 
   } catch (e) {
-    document.getElementById("output").innerText = "Error: " + e.message;
+    document.getElementById("output").innerText =
+      "Error: " + e.message;
+
+    console.error(e);
   }
 }
 </script>
