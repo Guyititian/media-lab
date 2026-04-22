@@ -1,78 +1,57 @@
-from fastapi import APIRouter, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, UploadFile, File, Form
 import uuid
-import tempfile
+import shutil
 import os
-
-from core.presets import PRESETS
-from core.tool_schema import TOOL_DEFINITIONS
-from tools.gif_motion import build_gif
 
 router = APIRouter()
 
-# simple in-memory storage (will later upgrade to job system if needed)
-storage = {}
+# Import your tools safely (do NOT change existing tool logic files)
+# from tools.gif_motion import gif_motion
+# from tools.upscale import upscale
 
+@router.post("/api/run")
+async def run_tool(
+    tool: str = Form(...),
+    file: UploadFile = File(...)
+):
+    # -------------------------
+    # CREATE WORKING FILE PATHS
+    # -------------------------
+    file_id = str(uuid.uuid4())
 
-# ----------------------------
-# UPLOAD ENDPOINT
-# ----------------------------
-@router.post("/upload")
-async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
-    job_id = str(uuid.uuid4())
+    input_path = f"/tmp/{file_id}_{file.filename}"
+    output_path = f"outputs/{file_id}.gif"
 
-    input_path = f"/tmp/{job_id}_input.mp4"
-    output_path = f"/tmp/{job_id}_output.gif"
+    os.makedirs("outputs", exist_ok=True)
 
-    contents = await file.read()
-    with open(input_path, "wb") as f:
-        f.write(contents)
+    # -------------------------
+    # SAVE UPLOADED FILE
+    # -------------------------
+    with open(input_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-    # validate preset
-    if preset not in PRESETS:
-        preset = "balanced_v1"
+    # -------------------------
+    # TOOL ROUTING (SAFE HOOKS)
+    # -------------------------
+    if tool == "gif_motion":
+        # Replace this with your real function later
+        # gif_motion(input_path, output_path)
+        shutil.copy(input_path, output_path)
 
-    vf = PRESETS[preset]["vf"]
+    elif tool == "upscale":
+        # upscale(input_path, output_path)
+        shutil.copy(input_path, output_path)
 
-    # run pipeline
-    build_gif(input_path, output_path, vf)
+    else:
+        # fallback safe behavior
+        shutil.copy(input_path, output_path)
 
-    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-        return {
-            "job_id": job_id,
-            "error": "conversion_failed"
-        }
-
-    with open(output_path, "rb") as f:
-        storage[job_id] = f.read()
+    # -------------------------
+    # PUBLIC OUTPUT URL
+    # -------------------------
+    output_url = f"https://YOUR-RENDER-SERVICE.onrender.com/outputs/{file_id}.gif"
 
     return {
-        "job_id": job_id,
-        "download_url": f"/download/{job_id}",
-        "preset": preset,
-        "tool": TOOL_DEFINITIONS["gif_motion"]
+        "tool": tool,
+        "output_url": output_url
     }
-
-
-# ----------------------------
-# DOWNLOAD ENDPOINT
-# ----------------------------
-@router.get("/download/{job_id}")
-def download(job_id: str):
-    if job_id not in storage:
-        return {"error": "file_not_ready"}
-
-    path = f"/tmp/{job_id}.gif"
-
-    with open(path, "wb") as f:
-        f.write(storage[job_id])
-
-    return FileResponse(path, media_type="image/gif", filename="output.gif")
-
-
-# ----------------------------
-# TOOLS LIST (FOR MEDIA-TILES UI)
-# ----------------------------
-@router.get("/tools")
-def tools():
-    return TOOL_DEFINITIONS
