@@ -27,9 +27,7 @@ body {
   cursor:pointer;
 }
 
-.brand:hover {
-  opacity:0.7;
-}
+.brand:hover { opacity:0.7; }
 
 .header-right {
   font-size:12px;
@@ -65,41 +63,27 @@ button {
   cursor:pointer;
 }
 
-button:hover {
-  opacity:0.85;
-}
+button:hover { opacity:0.85; }
 
 #output {
   margin-top:15px;
   font-size:12px;
-  opacity:0.9;
   word-break:break-all;
 }
 
 a { color:#7dd3fc; }
-
-.help-row {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
 
 .help {
   font-size:12px;
   opacity:0.7;
   cursor:pointer;
 }
-
-.help:hover {
-  opacity:1;
-}
+.help:hover { opacity:1; }
 
 .modal {
   position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
+  top:0; left:0;
+  width:100%; height:100%;
   background:rgba(0,0,0,0.7);
   display:none;
   justify-content:center;
@@ -112,17 +96,11 @@ a { color:#7dd3fc; }
   border-radius:12px;
   max-width:420px;
   font-size:13px;
-  line-height:1.4;
 }
 
 .close {
   float:right;
   cursor:pointer;
-  opacity:0.7;
-}
-
-.close:hover {
-  opacity:1;
 }
 </style>
 </head>
@@ -130,13 +108,8 @@ a { color:#7dd3fc; }
 <body>
 
 <div class="header">
-  <div class="brand" onclick="goHome()">
-    Media-Tiles
-  </div>
-
-  <div class="header-right">
-    Media-Lab Tools
-  </div>
+  <div class="brand" onclick="goHome()">Media-Tiles</div>
+  <div class="header-right">Media-Lab Tools</div>
 </div>
 
 <div class="panel">
@@ -144,19 +117,10 @@ a { color:#7dd3fc; }
   <label>Upload File</label>
   <input type="file" id="file">
 
-  <label>Tool</label>
-  <select id="tool">
-    <option value="gif_motion">GIF Motion</option>
-  </select>
-
-  <div class="help-row">
-    <label>Preset</label>
-    <div class="help" onclick="openModal()">What do these mean?</div>
-  </div>
-
+  <label>Preset</label>
   <select id="preset">
-    <option value="balanced">Balanced</option>
-    <option value="fluid_motion">Fluid Motion</option>
+    <option value="balanced_v1">Balanced</option>
+    <option value="fluid_motion_v1">Fluid Motion</option>
   </select>
 
   <button onclick="runTool()">Generate</button>
@@ -165,41 +129,17 @@ a { color:#7dd3fc; }
 
 </div>
 
-<!-- MODAL -->
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal()">✕</span>
-
-    <h3>Preset Guide</h3>
-
-    <p><b>Balanced</b><br>
-    Stable output with controlled file size and clean motion.</p>
-
-    <p><b>Fluid Motion</b><br>
-    Higher interpolation, smoother motion, larger file size.</p>
-
-  </div>
-</div>
-
 <script>
 
 function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
-function openModal() {
-  document.getElementById("modal").style.display = "flex";
-}
-
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
 const API_URL = "https://media-lab.onrender.com/upload";
 
 async function runTool() {
   const file = document.getElementById("file").files[0];
-  const presetUI = document.getElementById("preset").value;
+  const preset = document.getElementById("preset").value;
 
   if (!file) {
     document.getElementById("output").innerText = "Please select a file.";
@@ -208,22 +148,9 @@ async function runTool() {
 
   document.getElementById("output").innerText = "Processing...";
 
-  // IMPORTANT: MUST match backend preset keys
-  const presetMap = {
-    balanced: "balanced_v1",
-    fluid_motion: "fluid_motion_v1"
-  };
-
-  const preset = presetMap[presetUI];
-
-  if (!preset) {
-    document.getElementById("output").innerText = "Invalid preset selected.";
-    return;
-  }
-
   const formData = new FormData();
 
-  // MUST match FastAPI exactly
+  // CRITICAL: must match backend exactly
   formData.append("file", file);
   formData.append("preset", preset);
 
@@ -234,8 +161,8 @@ async function runTool() {
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText);
+      const err = await res.text();
+      throw new Error(err);
     }
 
     const data = await res.json();
