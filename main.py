@@ -1,33 +1,29 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from api.routes import router
 
-app = FastAPI(
-    title="Media-Lab",
-    description="Media processing toolkit (GIF Motion Engine + future tools)",
-    version="1.0.0"
+app = FastAPI()
+
+# ----------------------------
+# FULL CORS FIX (CRITICAL)
+# ----------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Register API routes
 app.include_router(router)
 
 
-# ----------------------------
-# HEALTH CHECK
-# ----------------------------
 @app.get("/")
 def root():
-    return {
-        "status": "online",
-        "service": "media-lab",
-        "message": "GIF Motion Engine running"
-    }
+    return {"status": "media-lab online"}
 
 
-# ----------------------------
-# SIMPLE DEBUG ENDPOINT
-# ----------------------------
 @app.get("/health")
 def health():
-    return {
-        "status": "healthy"
-    }
+    return {"status": "ok"}
