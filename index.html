@@ -1,8 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Media Lab</title>
+
+<style>
+body {
+  margin:0;
+  background:#0f0f0f;
+  color:white;
+  font-family:Arial;
+}
+
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 30px;
+  background:#111;
+  border-bottom:1px solid #222;
+}
+
+.brand {
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.brand:hover {
+  opacity:0.7;
+}
+
+.header-right {
+  font-size:12px;
+  opacity:0.6;
+}
+
+.panel {
+  max-width:520px;
+  margin:40px auto;
+  background:#1c1c1c;
+  padding:20px;
+  border-radius:12px;
+}
+
+label {
+  font-size:12px;
+  opacity:0.7;
+  display:block;
+  margin-top:10px;
+}
+
+input, select, button {
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border:none;
+  border-radius:6px;
+}
+
+button {
+  background:white;
+  color:black;
+  cursor:pointer;
+}
+
+button:hover {
+  opacity:0.85;
+}
+
+#output {
+  margin-top:15px;
+  font-size:12px;
+  word-break:break-all;
+}
+
+a { color:#7dd3fc; }
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="brand" onclick="goHome()">Media-Tiles</div>
+  <div class="header-right">Media-Lab Tools</div>
+</div>
+
+<!-- PANEL -->
+<div class="panel">
+
+  <label>Upload File</label>
+  <input type="file" id="file">
+
+  <label>Preset</label>
+  <select id="preset">
+    <option value="balanced_v1">Balanced</option>
+    <option value="fluid_motion_v1">Fluid Motion</option>
+  </select>
+
+  <button onclick="runTool()">Generate</button>
+
+  <div id="output"></div>
+
+</div>
+
 <script>
+
+function goHome() {
+  window.location.href = "https://guyititian.github.io/media-tiles/";
+}
 
 const API_URL = "https://media-lab.onrender.com/upload";
 
 async function runTool() {
+
   const file = document.getElementById("file").files[0];
   const preset = document.getElementById("preset").value;
 
@@ -13,11 +125,10 @@ async function runTool() {
 
   document.getElementById("output").innerText = "Processing...";
 
-  console.log("🔥 FRONTEND PRESET SENDING:", preset);
+  // 🔥 HARD DEBUG (YOU NEED THIS)
+  console.log("🔥 SELECTED PRESET:", preset);
 
   const formData = new FormData();
-
-  // 🔥 HARD GUARANTEE FIELD NAMES
   formData.append("file", file);
   formData.append("preset", preset);
 
@@ -27,10 +138,9 @@ async function runTool() {
       body: formData
     });
 
-    const text = await res.text();
-    console.log("🔥 RAW RESPONSE:", text);
+    const data = await res.json();
 
-    const data = JSON.parse(text);
+    console.log("🔥 SERVER RESPONSE:", data);
 
     if (data.error) {
       throw new Error(JSON.stringify(data));
@@ -49,3 +159,6 @@ async function runTool() {
 }
 
 </script>
+
+</body>
+</html>
