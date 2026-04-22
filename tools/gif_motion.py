@@ -1,81 +1,85 @@
-import subprocess
 import os
 import uuid
+import subprocess
 
-# =========================
-# PRESET DEFINITIONS (SOURCE OF TRUTH)
-# =========================
+# =========================================================
+# PRESET SYSTEM (STRICT + FULL PIPELINES)
+# =========================================================
 
 PRESETS = {
+
+    # -------------------------
+    # BALANCED (STABLE / SMALL)
+    # -------------------------
     "balanced_v1": {
-        "fps": 24,
-        "scale": 720,
         "vf": (
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "eq=contrast=1.08:saturation=1.22:brightness=0.01,"
+            "eq=contrast=1.05:saturation=1.15:brightness=0.0,"
             "fps=24,"
-            "format=yuv444p,"
-            "split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-            "[s1][p]paletteuse=dither=bayer:bayer_scale=1"
+            "format=yuv420p,"
+            "split[s0][s1];"
+            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=3"
         )
     },
 
-    # 🔥 TRUE FLUID MOTION PROFILE (DO NOT REDUCE TO 24fps LOOK)
+    # -------------------------
+    # FLUID MOTION (HIGH QUALITY)
+    # -------------------------
     "fluid_motion_v1": {
-        "fps": 48,
-        "scale": 720,
         "vf": (
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "eq=contrast=1.12:saturation=1.28:brightness=0.02,"
-            "minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:vsbmc=1,"
+            "minterpolate=fps=60:mi_mode=mci:mc_mode=obmc:vsbmc=1:me_mode=bidir,"
+            "tblend=all_mode=average,"
+            "setpts=0.75*PTS,"
             "format=yuv444p,"
             "split[s0][s1];"
-            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-            "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
+            "[s0]palettegen=max_colors=128:stats_mode=single[p];"
+            "[s1][p]paletteuse=dither=floyd_steinberg"
         )
     }
 }
 
 
-# =========================
-# MAIN PROCESSING FUNCTION
-# =========================
+# =========================================================
+# BACKWARD-COMPATIBLE ENTRY POINT (FIXES IMPORT CRASH)
+# =========================================================
 
-def run_gif_motion(input_path: str, preset: str, output_dir: str = "outputs"):
+def generate_gif(input_path: str, preset: str, output_dir: str = "outputs"):
     """
-    Converts video → GIF using strict preset isolation.
-    NO POST-MUTATION OF FILTERS ALLOWED.
+    This is the ONLY function your API should call.
+    Fixes previous ImportError AND enforces preset isolation.
     """
 
     # -------------------------
-    # SAFE PRESET RESOLUTION
+    # VALIDATION (NO SILENT FALLBACK BLENDING)
     # -------------------------
     if preset not in PRESETS:
-        print("⚠️ Unknown preset, falling back to balanced_v1")
-        preset = "balanced_v1"
+        raise ValueError(f"Invalid preset: {preset}. Must be one of {list(PRESETS.keys())}")
 
-    config = PRESETS[preset]
-
-    vf = config["vf"]
+    vf = PRESETS[preset]["vf"]
 
     # -------------------------
-    # LOCKED OUTPUT NAME
+    # OUTPUT SETUP
     # -------------------------
-    output_name = f"{uuid.uuid4()}.gif"
-    output_path = os.path.join(output_dir, output_name)
-
     os.makedirs(output_dir, exist_ok=True)
 
+    output_file = f"{uuid.uuid4()}.gif"
+    output_path = os.path.join(output_dir, output_file)
+
+    # -------------------------
+    # DEBUG LOGGING (IMPORTANT FOR YOU)
+    # -------------------------
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("🔥 TOOL: gif_motion")
-    print(f"🔥 RAW PRESET: {preset}")
-    print(f"🔥 LOCKED PRESET FPS: {config['fps']}")
-    print("🔥 FILTER STRING:")
+    print("🔥 GIF MOTION ENGINE")
+    print("🔥 INPUT:", input_path)
+    print("🔥 PRESET:", preset)
+    print("🔥 FILTER PIPELINE:")
     print(vf)
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
     # -------------------------
-    # FFmpeg EXECUTION
+    # FFMPEG EXECUTION
     # -------------------------
     cmd = [
         "ffmpeg",
@@ -88,6 +92,6 @@ def run_gif_motion(input_path: str, preset: str, output_dir: str = "outputs"):
 
     subprocess.run(cmd, check=True)
 
-    print("✅ OUTPUT CREATED:", output_path)
-
-    return output_path
+    return {
+        "output_url": f"/outputs/{output_file}"
+    }
