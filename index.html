@@ -62,24 +62,65 @@ button {
   cursor: pointer;
 }
 
-/* OUTPUT */
+/* STATUS BOX */
+#status {
+  margin-top: 16px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* LOADING ANIMATION */
+.loader {
+  margin-top: 12px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #444;
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: none;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
+/* PRESET INFO PANEL */
+#presetInfo {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+/* OUTPUT CARD */
 #output {
   margin-top: 16px;
   font-size: 14px;
-  word-break: break-word;
+}
+
+.resultCard {
+  margin-top: 12px;
+  padding: 12px;
+  background: #111;
+  border-radius: 8px;
+  border: 1px solid #222;
+}
+
+a {
+  color: #00d1ff;
 }
 </style>
 </head>
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
   <div class="brand" onclick="goHome()">Media-Tiles</div>
   <div>Media-Lab Tools</div>
 </div>
 
-<!-- TOOL UI -->
 <div class="container">
 
   <h2>GIF Motion Tool</h2>
@@ -93,13 +134,18 @@ button {
   </select>
 
   <label>Preset</label>
-  <select id="preset">
+  <select id="preset" onchange="updatePresetInfo()">
     <option value="balanced_v1">Balanced</option>
     <option value="fluid_motion_v1">Fluid Motion</option>
     <option value="cinematic_v1">Cinematic</option>
   </select>
 
+  <div id="presetInfo"></div>
+
   <button onclick="runTool()">Run Tool</button>
+
+  <div class="loader" id="loader"></div>
+  <div id="status"></div>
 
   <div id="output"></div>
 </div>
@@ -108,28 +154,40 @@ button {
 
 const API_URL = "https://media-lab.onrender.com/upload";
 
+/* FRONTEND-ONLY DESCRIPTORS (SAFE ADDITION) */
+const PRESET_INFO = {
+  balanced_v1: "Stable output. Clean colors, low artifacts, standard motion rendering.",
+  fluid_motion_v1: "Enhanced smoothness with stronger motion interpolation and more vivid color grading.",
+  cinematic_v1: "Highest visual emphasis. Strong motion smoothing + enhanced contrast + cinematic color shaping."
+};
+
 function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
+function updatePresetInfo() {
+  const preset = document.getElementById("preset").value;
+  document.getElementById("presetInfo").innerText = PRESET_INFO[preset] || "";
+}
+
 async function runTool() {
   const outputEl = document.getElementById("output");
+  const statusEl = document.getElementById("status");
+  const loader = document.getElementById("loader");
 
   try {
     const file = document.getElementById("file").files[0];
     const tool = document.getElementById("tool").value;
     const preset = document.getElementById("preset").value;
 
-    console.log("INPUT FILE:", file);
-    console.log("INPUT TOOL:", tool);
-    console.log("INPUT PRESET:", preset);
-
     if (!file) {
       outputEl.innerText = "Please select a file.";
       return;
     }
 
-    outputEl.innerText = "Processing...";
+    outputEl.innerHTML = "";
+    statusEl.innerText = "Processing video...";
+    loader.style.display = "block";
 
     const formData = new FormData();
     formData.append("file", file);
@@ -141,21 +199,14 @@ async function runTool() {
       body: formData
     });
 
-    console.log("STATUS:", res.status);
-    console.log("OK:", res.ok);
-
     const raw = await res.text();
-    console.log("RAW RESPONSE:", raw);
 
     let data;
     try {
       data = JSON.parse(raw);
     } catch (e) {
-      console.error("JSON PARSE ERROR:", e);
       throw new Error("Invalid JSON from backend");
     }
-
-    console.log("PARSED DATA:", data);
 
     if (!res.ok) {
       throw new Error(data.error || "Request failed");
@@ -175,16 +226,26 @@ async function runTool() {
       "https://media-lab.onrender.com"
     ).href;
 
-    console.log("FINAL URL:", finalUrl);
+    statusEl.innerText = "Complete ✔";
+    loader.style.display = "none";
 
-    outputEl.innerHTML =
-      `<a href="${finalUrl}" target="_blank">Download GIF</a>`;
+    outputEl.innerHTML = `
+      <div class="resultCard">
+        <div>Output ready</div>
+        <a href="${finalUrl}" target="_blank">Download GIF</a>
+      </div>
+    `;
 
   } catch (err) {
-    console.error("FULL ERROR:", err);
+    console.error(err);
+    loader.style.display = "none";
+    statusEl.innerText = "";
     outputEl.innerText = "ERROR: " + err.message;
   }
 }
+
+/* init */
+updatePresetInfo();
 
 </script>
 
