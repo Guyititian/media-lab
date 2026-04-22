@@ -2,124 +2,71 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Media Lab</title>
+<title>Media-Lab</title>
 
 <style>
 body {
-  margin:0;
-  background:#0f0f0f;
-  color:white;
-  font-family:Arial;
+  margin: 0;
+  font-family: Arial;
+  background: #0f0f0f;
+  color: white;
 }
 
 /* HEADER */
 .header {
-  display:flex;
-  justify-content:space-between;
-  padding:20px 30px;
-  background:#111;
-  border-bottom:1px solid #222;
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #111;
+  border-bottom: 1px solid #222;
 }
 
 .brand {
-  font-weight:bold;
-  cursor:pointer;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-.brand:hover { opacity:0.7; }
-
-/* TOOL GRID */
-.tools {
-  display:flex;
-  gap:15px;
-  padding:20px;
-  justify-content:center;
+.brand:hover {
+  opacity: 0.7;
 }
 
-.tool-card {
-  background:#1c1c1c;
-  padding:15px;
-  border-radius:10px;
-  cursor:pointer;
-  width:180px;
-  text-align:center;
-  transition:0.2s;
+/* MAIN */
+.container {
+  max-width: 600px;
+  margin: 40px auto;
+  background: #1b1b1b;
+  padding: 20px;
+  border-radius: 10px;
 }
 
-.tool-card:hover {
-  background:#252525;
-}
-
-.tool-card.active {
-  outline:2px solid white;
-}
-
-/* PANEL */
-.panel {
-  max-width:520px;
-  margin:20px auto;
-  background:#1c1c1c;
-  padding:20px;
-  border-radius:12px;
-}
-
+/* INPUTS */
 label {
-  font-size:12px;
-  opacity:0.7;
-  margin-top:10px;
-  display:block;
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.7;
 }
 
 input, select, button {
-  width:100%;
-  padding:10px;
-  margin-top:8px;
-  border:none;
-  border-radius:6px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
 }
 
 button {
-  background:white;
-  color:black;
-  cursor:pointer;
+  margin-top: 16px;
+  background: white;
+  color: black;
+  cursor: pointer;
 }
 
+/* OUTPUT */
 #output {
-  margin-top:15px;
-  font-size:12px;
-  word-break:break-all;
-}
-
-/* HELP */
-.help {
-  font-size:12px;
-  cursor:pointer;
-  opacity:0.6;
-}
-
-.help:hover { opacity:1; }
-
-/* MODAL */
-.modal {
-  position:fixed;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.7);
-  display:none;
-  justify-content:center;
-  align-items:center;
-}
-
-.modal-content {
-  background:#1c1c1c;
-  padding:20px;
-  border-radius:10px;
-  max-width:420px;
-}
-
-.close {
-  float:right;
-  cursor:pointer;
+  margin-top: 16px;
+  font-size: 14px;
+  word-break: break-word;
 }
 </style>
 </head>
@@ -129,26 +76,23 @@ button {
 <!-- HEADER -->
 <div class="header">
   <div class="brand" onclick="goHome()">Media-Tiles</div>
-  <div>Media-Lab Dashboard</div>
+  <div>Media-Lab Tools</div>
 </div>
 
-<!-- TOOL SELECTOR -->
-<div class="tools">
-  <div class="tool-card active" onclick="selectTool('gif_motion')" id="tool_gif_motion">
-    GIF Motion
-  </div>
-</div>
+<!-- TOOL UI -->
+<div class="container">
 
-<!-- CONFIG PANEL -->
-<div class="panel">
-
-  <h3 id="toolTitle">GIF Motion</h3>
+  <h2>GIF Motion Tool</h2>
 
   <label>Upload File</label>
   <input type="file" id="file">
 
-  <label>Preset <span class="help" onclick="openModal()">?</span></label>
+  <label>Tool</label>
+  <select id="tool">
+    <option value="gif_motion">GIF Motion</option>
+  </select>
 
+  <label>Preset</label>
   <select id="preset">
     <option value="balanced">Balanced</option>
     <option value="fluid_motion">Fluid Motion</option>
@@ -157,109 +101,83 @@ button {
   <button onclick="runTool()">Run Tool</button>
 
   <div id="output"></div>
-
-</div>
-
-<!-- MODAL -->
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal()">✕</span>
-
-    <h3>Preset Guide</h3>
-
-    <p><b>Balanced</b><br>Stable motion and optimized file size.</p>
-    <p><b>Fluid Motion</b><br>Smoother motion using interpolation.</p>
-
-  </div>
 </div>
 
 <script>
-let currentTool = "gif_motion";
+
+const API_URL = "https://media-lab.onrender.com/upload";
 
 function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
-function selectTool(tool) {
-  currentTool = tool;
-
-  document.querySelectorAll(".tool-card")
-    .forEach(el => el.classList.remove("active"));
-
-  document.getElementById("tool_" + tool).classList.add("active");
-
-  document.getElementById("toolTitle").innerText = "GIF Motion";
-}
-
-function openModal() {
-  document.getElementById("modal").style.display = "flex";
-}
-
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
-const API_URL = "https://media-lab.onrender.com/upload";
-
 async function runTool() {
-  const file = document.getElementById("file").files[0];
-  const presetUI = document.getElementById("preset").value;
-
-  if (!file) {
-    document.getElementById("output").innerText = "Select a file.";
-    return;
-  }
-
-  document.getElementById("output").innerText = "Processing...";
-
-  /* =====================================================
-     CRITICAL: MATCH BACKEND PRESET KEYS EXACTLY
-  ===================================================== */
-  const presetMap = {
-    balanced: "balanced_v1",
-    fluid_motion: "fluid_motion_v1"
-  };
-
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("tool", currentTool);
-  formData.append("preset", presetMap[presetUI]);
+  const outputEl = document.getElementById("output");
 
   try {
+    const file = document.getElementById("file").files[0];
+    const tool = document.getElementById("tool").value;
+    const preset = document.getElementById("preset").value;
+
+    console.log("INPUT FILE:", file);
+    console.log("INPUT TOOL:", tool);
+    console.log("INPUT PRESET:", preset);
+
+    if (!file) {
+      outputEl.innerText = "Please select a file.";
+      return;
+    }
+
+    outputEl.innerText = "Processing...";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tool", tool);
+    formData.append("preset", preset);
+
     const res = await fetch(API_URL, {
       method: "POST",
       body: formData
     });
 
-    /* FORCE TEXT FIRST (prevents silent JSON parse failures) */
-    const text = await res.text();
+    console.log("STATUS:", res.status);
+    console.log("OK:", res.ok);
 
-    console.log("RAW RESPONSE:", text);
+    const raw = await res.text();
+    console.log("RAW RESPONSE:", raw);
 
     let data;
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(raw);
     } catch (e) {
-      throw new Error("Invalid JSON from server: " + text);
+      console.error("JSON PARSE ERROR:", e);
+      throw new Error("Invalid JSON from backend");
     }
 
-    if (!res.ok || data.error) {
-      throw new Error(data.error || "Server error");
+    console.log("PARSED DATA:", data);
+
+    if (!res.ok) {
+      throw new Error(data.error || "Request failed");
     }
 
-    const downloadUrl =
+    if (!data.output_url) {
+      throw new Error("Missing output_url");
+    }
+
+    const finalUrl =
       "https://media-lab.onrender.com" + data.output_url;
 
-    document.getElementById("output").innerHTML =
-      "<a href='" + downloadUrl + "' target='_blank'>Download Output</a>";
+    console.log("FINAL URL:", finalUrl);
 
-  } catch (e) {
-    document.getElementById("output").innerText =
-      "Error: " + e.message;
+    outputEl.innerHTML =
+      `<a href="${finalUrl}" target="_blank">Download GIF</a>`;
 
-    console.error(e);
+  } catch (err) {
+    console.error("FULL ERROR:", err);
+    outputEl.innerText = "ERROR: " + err.message;
   }
 }
+
 </script>
 
 </body>
