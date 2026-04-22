@@ -1,70 +1,75 @@
-import subprocess
-import uuid
+# tools/gif_motion.py
+
 import os
-
-OUTPUT_DIR = "outputs"
-
-# ----------------------------------
-# PRESETS (FINAL TUNED VERSIONS)
-# ----------------------------------
-PRESETS = {
-
-    # FAST / CLEAN / SMALLER FILE
-    "balanced_v1": {
-        "filter": (
-            "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "fps=24,"
-            "eq=contrast=1.04:saturation=1.08:brightness=0.01,"
-            "format=yuv444p,"
-            "split[s0][s1];"
-            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-            "[s1][p]paletteuse=dither=bayer:bayer_scale=2"
-        )
-    },
-
-    # HIGH-END / 50 FPS / SMOOTH MOTION
-    "fluid_motion_v1": {
-        "filter": (
-            "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "minterpolate=fps=50:mi_mode=mci:mc_mode=aobmc:me_mode=bidir,"
-            "eq=contrast=1.05:saturation=1.15:brightness=0.01,"
-            "format=yuv444p,"
-            "split[s0][s1];"
-            "[s0]palettegen=max_colors=256:stats_mode=single[p];"
-            "[s1][p]paletteuse=dither=floyd_steinberg"
-        )
-    }
-}
+import subprocess
+from core.presets import get_preset
 
 
-# ----------------------------------
-# MAIN ENGINE
-# ----------------------------------
-def generate_gif(input_path: str, preset: dict) -> str:
+def generate_gif(input_path: str, output_path: str, preset_name: str):
+    """
+    Core GIF motion engine
+    - resolves preset safely
+    - builds deterministic ffmpeg pipeline
+    """
+
+    # -----------------------------
+    # 1. Resolve preset (CRITICAL FIX)
+    # -----------------------------
+    preset = get_preset(preset_name)
+
     if not isinstance(preset, dict):
-        raise Exception("Preset must be resolved dict")
+        raise TypeError("Preset must be a resolved dict")
 
-    filter_str = preset["filter"]
+    filter_complex = preset["filter"]
+    fps = preset.get("fps", 24)
 
-    output_filename = f"{uuid.uuid4()}.gif"
-    output_path = os.path.join(OUTPUT_DIR, output_filename)
-
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("🔥 GIF MOTION ENGINE")
-    print(f"🔥 INPUT: {input_path}")
-    print(f"🔥 FILTER PIPELINE:\n{filter_str}")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
+    # -----------------------------
+    # 2. Build FFmpeg command
+    # -----------------------------
     cmd = [
         "ffmpeg",
         "-y",
         "-i", input_path,
-        "-vf", filter_str,
-        "-gifflags", "-offsetting",
-        "-loglevel", "error",
+        "-filter_complex", filter_complex,
+        "-r", str(fps),
+        "-an",
         output_path
     ]
 
-    subprocess.run(cmd, check=True)
+    # -----------------------------
+    # 3. Debug logging (important for Render)
+    # -----------------------------
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("🔥 TOOL: gif_motion")
+    print(f"🔥 PRESET: {preset_name}")
+    print(f"🔥 INPUT: {input_path}")
+    print(f"🔥 OUTPUT: {output_path}")
+    print(f"🔥 FPS: {fps}")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"🔥 FILTER: {filter_complex}")
 
-    return f"/outputs/{output_filename}"
+    # -----------------------------
+    # 4. Validate input path (fixes your dict/path bug indirectly)
+    # -----------------------------
+    if isinstance(input_path, dict):
+        raise TypeError("Input path is dict — expected file path string")
+
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    # -----------------------------
+    # 5. Execute FFmpeg
+    # -----------------------------
+    result = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    if result.returncode != 0:
+        print("❌ FFmpeg ERROR:")
+        print(result.stderr)
+        raise RuntimeError("GIF generation failed")
+
+    return output_path
