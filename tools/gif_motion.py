@@ -15,16 +15,14 @@ def generate_gif(input_path: str, preset_name: str):
     output_name = f"{uuid.uuid4()}.gif"
     output_path = os.path.join(OUTPUT_DIR, output_name)
 
-    vf = preset.get("vf")
-
-    if not vf:
-        raise ValueError(f"Preset '{preset_name}' missing 'vf' filter chain")
-
     cmd = [
         "ffmpeg",
         "-y",
         "-i", input_path,
-        "-vf", vf,
+
+        # IMPORTANT FIX: use "vf", not "filter"
+        "-vf", preset["vf"],
+
         "-loop", "0",
         output_path
     ]
