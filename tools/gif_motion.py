@@ -4,27 +4,46 @@ from core.presets import get_preset
 
 def build_filter(preset: dict) -> str:
     """
-    Build ffmpeg filter chain from preset dict
+    SAFE builder:
+    - supports both balanced + fluid presets
+    - prevents missing key crashes
     """
 
-    return (
-        f"scale={preset['scale']}:flags=lanczos:force_original_aspect_ratio=decrease,"
-        f"minterpolate=fps={preset['fps']}:mi_mode=mci:mc_mode={preset['mc_mode']}:me_mode=bidir,"
-        f"eq=contrast={preset['contrast']}:saturation={preset['saturation']}:brightness={preset['brightness']},"
-        f"format=yuv444p,"
+    scale = preset["scale"]
+    fps = preset["fps"]
+
+    contrast = preset.get("contrast", 1.0)
+    saturation = preset.get("saturation", 1.0)
+    brightness = preset.get("brightness", 0.0)
+
+    # motion interpolation (only for fluid)
+    if preset.get("minterpolate", False):
+        mi_filter = (
+            f"minterpolate=fps={fps}:"
+            f"mi_mode={preset.get('mi_mode','mci')}:"
+            f"mc_mode={preset.get('mc_mode','aobmc')}:"
+            f"me_mode={preset.get('me_mode','bidir')}:"
+            f"vsbmc={preset.get('vsbmc',1)},"
+        )
+    else:
+        mi_filter = f"fps={fps},"
+
+    filter_chain = (
+        f"scale={scale}:flags=lanczos:force_original_aspect_ratio=decrease,"
+        f"{mi_filter}"
+        f"eq=contrast={contrast}:saturation={saturation}:brightness={brightness},"
+        f"format={preset.get('yuv','yuv420p')},"
         f"split[s0][s1];"
-        f"[s0]palettegen=max_colors={preset['max_colors']}:stats_mode=single[p];"
-        f"[s1][p]paletteuse=dither={preset['dither']}"
+        f"[s0]palettegen=max_colors={preset.get('palette_max_colors',256)}:stats_mode={preset.get('palette_mode','diff')}[p];"
+        f"[s1][p]paletteuse=dither={preset.get('dither','bayer')}"
     )
+
+    return filter_chain
 
 
 def generate_gif(input_path: str, output_path: str, preset_name: str) -> str:
-    """
-    Main GIF generator
-    """
 
     preset = get_preset(preset_name)
-
     filter_chain = build_filter(preset)
 
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
