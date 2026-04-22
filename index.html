@@ -13,8 +13,8 @@ body {
 }
 
 .header {
-  padding:30px;
   text-align:center;
+  padding:30px;
 }
 
 .header h1 {
@@ -27,50 +27,25 @@ body {
   font-size:13px;
 }
 
-.grid {
-  display:flex;
-  justify-content:center;
-  gap:20px;
-  flex-wrap:wrap;
-  padding:20px;
-}
-
-.card {
-  background:#1c1c1c;
-  width:240px;
-  padding:18px;
-  border-radius:12px;
-  cursor:pointer;
-  transition:0.2s;
-}
-
-.card:hover {
-  transform:translateY(-4px);
-  background:#252525;
-}
-
-.card h3 {
-  margin:0 0 8px 0;
-}
-
-.card p {
-  font-size:12px;
-  opacity:0.7;
-}
-
 .panel {
   max-width:520px;
-  margin:30px auto;
+  margin:40px auto;
   background:#1c1c1c;
   padding:20px;
   border-radius:12px;
-  display:none;
 }
 
-input[type="file"], button {
+label {
+  font-size:12px;
+  opacity:0.7;
+  display:block;
+  margin-top:10px;
+}
+
+input, select, button {
   width:100%;
   padding:10px;
-  margin-top:10px;
+  margin-top:8px;
   border:none;
   border-radius:6px;
 }
@@ -98,72 +73,62 @@ button:hover {
 
 <div class="header">
   <h1>🛠 Media Lab</h1>
-  <p>Upload media → process → download output</p>
+  <p>Upload MP4 → process → generate GIF</p>
 </div>
 
-<div class="grid">
+<div class="panel">
 
-  <div class="card" onclick="openTool('gif_motion')">
-    <h3>GIF Motion</h3>
-    <p>Animate images into motion GIFs</p>
-  </div>
+  <label>Upload File (MP4 / Media)</label>
+  <input type="file" id="file">
 
-  <div class="card" onclick="openTool('upscale')">
-    <h3>Upscale</h3>
-    <p>Enhance resolution and clarity</p>
-  </div>
+  <label>Tool</label>
+  <select id="tool">
+    <option value="gif_motion">GIF Motion</option>
+  </select>
 
-</div>
+  <label>Preset</label>
+  <select id="preset">
+    <option value="high">High Quality</option>
+    <option value="medium">Medium</option>
+    <option value="fast">Fast</option>
+  </select>
 
-<div class="panel" id="panel">
-
-  <h3 id="toolTitle"></h3>
-
-  <!-- FILE UPLOAD (THIS IS THE KEY CHANGE) -->
-  <input type="file" id="fileInput">
-
-  <button onclick="runTool()">Run Tool</button>
+  <button onclick="run()">Generate</button>
 
   <div id="output"></div>
 
 </div>
 
 <script>
-let currentTool = null;
+const API_URL = "https://media-lab.onrender.com/upload";
 
-const API_BASE = "https://YOUR-RENDER-URL.onrender.com";
-
-function openTool(tool) {
-  currentTool = tool;
-  document.getElementById("panel").style.display = "block";
-  document.getElementById("toolTitle").innerText = "Tool: " + tool;
-  document.getElementById("output").innerText = "";
-}
-
-async function runTool() {
-  const file = document.getElementById("fileInput").files[0];
+async function run() {
+  const file = document.getElementById("file").files[0];
+  const tool = document.getElementById("tool").value;
+  const preset = document.getElementById("preset").value;
 
   if (!file) {
     document.getElementById("output").innerText = "Please select a file.";
     return;
   }
 
-  document.getElementById("output").innerText = "Uploading...";
+  document.getElementById("output").innerText = "Processing...";
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("tool", currentTool);
+  formData.append("tool", tool);
+  formData.append("preset", preset);
 
   try {
-    const res = await fetch(`${API_BASE}/api/run`, {
+    const res = await fetch(API_URL, {
       method: "POST",
       body: formData
     });
 
     const data = await res.json();
 
-    document.getElementById("output").innerText =
-      "Output: " + (data.output_url || JSON.stringify(data));
+    document.getElementById("output").innerHTML =
+      "Output: <a href='" + data.output_url + "' target='_blank'>Download GIF</a>";
 
   } catch (e) {
     document.getElementById("output").innerText =
