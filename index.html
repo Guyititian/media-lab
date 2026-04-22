@@ -12,21 +12,32 @@ body {
   font-family:Arial;
 }
 
+/* HEADER */
 .header {
-  text-align:center;
-  padding:30px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 30px;
+  background:#111;
+  border-bottom:1px solid #222;
 }
 
-.header h1 {
-  margin:0;
-  font-size:26px;
+.brand {
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
 }
 
-.header p {
+.brand:hover {
+  opacity:0.7;
+}
+
+.header-right {
+  font-size:12px;
   opacity:0.6;
-  font-size:13px;
 }
 
+/* PANEL */
 .panel {
   max-width:520px;
   margin:40px auto;
@@ -60,6 +71,7 @@ button:hover {
   opacity:0.85;
 }
 
+/* OUTPUT */
 #output {
   margin-top:15px;
   font-size:12px;
@@ -67,30 +79,93 @@ button:hover {
   word-break:break-all;
 }
 
-a {
-  color:#7dd3fc;
+a { color:#7dd3fc; }
+
+/* HELP ICON */
+.help-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.help {
+  font-size:12px;
+  opacity:0.7;
+  cursor:pointer;
+}
+
+.help:hover {
+  opacity:1;
+}
+
+/* MODAL */
+.modal {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-content {
+  background:#1c1c1c;
+  padding:20px;
+  border-radius:12px;
+  max-width:420px;
+  font-size:13px;
+  line-height:1.4;
+}
+
+.close {
+  float:right;
+  cursor:pointer;
+  opacity:0.7;
+}
+
+.close:hover {
+  opacity:1;
 }
 </style>
 </head>
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
-  <h1>🛠 Media Lab</h1>
-  <p>Upload MP4 → select preset → generate GIF</p>
+
+  <div class="brand" onclick="goHome()">
+    Media-Tiles
+  </div>
+
+  <div class="header-right">
+    Media-Lab Tools
+  </div>
+
 </div>
 
+<!-- PANEL -->
 <div class="panel">
 
   <label>Upload File</label>
   <input type="file" id="file">
 
-  <label>Tool</label>
+  <div class="help-row">
+    <label>Tool</label>
+  </div>
+
   <select id="tool">
     <option value="gif_motion">GIF Motion</option>
   </select>
 
-  <label>Preset</label>
+  <div class="help-row">
+    <label>Preset</label>
+    <div class="help" onclick="openModal()">What do these mean?</div>
+  </div>
+
   <select id="preset">
     <option value="balanced">Balanced</option>
     <option value="fluid_motion">Fluid Motion</option>
@@ -102,7 +177,41 @@ a {
 
 </div>
 
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">✕</span>
+
+    <h3>Preset Guide</h3>
+
+    <p><b>Balanced</b><br>
+    Default export. Optimized for stability, clean motion, and consistent file size.</p>
+
+    <p><b>Fluid Motion</b><br>
+    Higher frame interpolation look. Smoother motion but slightly larger file size.</p>
+
+    <p style="opacity:0.7">
+    These presets control how MP4 frames are sampled and interpolated into GIF output.
+    </p>
+  </div>
+</div>
+
 <script>
+
+function goHome() {
+  window.location.href = "https://guyititian.github.io/media-tiles/";
+}
+
+/* MODAL CONTROLS */
+function openModal() {
+  document.getElementById("modal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+/* TOOL CALL */
 const API_URL = "https://media-lab.onrender.com/upload";
 
 async function runTool() {
@@ -130,12 +239,6 @@ async function runTool() {
 
     const data = await res.json();
 
-    if (!data.output_url) {
-      document.getElementById("output").innerText =
-        "Error: No output returned";
-      return;
-    }
-
     document.getElementById("output").innerHTML =
       "Output: <a href='" + data.output_url + "' target='_blank'>Download GIF</a>";
 
@@ -144,6 +247,7 @@ async function runTool() {
       "Error: " + e.message;
   }
 }
+
 </script>
 
 </body>
