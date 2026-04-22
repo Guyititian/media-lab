@@ -3,7 +3,7 @@ import shutil
 import os
 import uuid
 
-from tools.gif_motion import generate_gif, PRESETS
+from tools.gif_motion import generate_gif
 
 router = APIRouter()
 
