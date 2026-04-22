@@ -12,7 +12,6 @@ body {
   font-family:Arial;
 }
 
-/* HEADER */
 .header {
   display:flex;
   justify-content:space-between;
@@ -37,7 +36,6 @@ body {
   opacity:0.6;
 }
 
-/* PANEL */
 .panel {
   max-width:520px;
   margin:40px auto;
@@ -71,7 +69,6 @@ button:hover {
   opacity:0.85;
 }
 
-/* OUTPUT */
 #output {
   margin-top:15px;
   font-size:12px;
@@ -81,7 +78,6 @@ button:hover {
 
 a { color:#7dd3fc; }
 
-/* HELP ICON */
 .help-row {
   display:flex;
   justify-content:space-between;
@@ -98,7 +94,6 @@ a { color:#7dd3fc; }
   opacity:1;
 }
 
-/* MODAL */
 .modal {
   position:fixed;
   top:0;
@@ -134,7 +129,6 @@ a { color:#7dd3fc; }
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
 
   <div class="brand" onclick="goHome()">
@@ -147,16 +141,12 @@ a { color:#7dd3fc; }
 
 </div>
 
-<!-- PANEL -->
 <div class="panel">
 
   <label>Upload File</label>
   <input type="file" id="file">
 
-  <div class="help-row">
-    <label>Tool</label>
-  </div>
-
+  <label>Tool</label>
   <select id="tool">
     <option value="gif_motion">GIF Motion</option>
   </select>
@@ -177,7 +167,6 @@ a { color:#7dd3fc; }
 
 </div>
 
-<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-content">
     <span class="close" onclick="closeModal()">✕</span>
@@ -185,14 +174,11 @@ a { color:#7dd3fc; }
     <h3>Preset Guide</h3>
 
     <p><b>Balanced</b><br>
-    Default export. Optimized for stability, clean motion, and consistent file size.</p>
+    Stable output with consistent file size and clean motion.</p>
 
     <p><b>Fluid Motion</b><br>
-    Higher frame interpolation look. Smoother motion but slightly larger file size.</p>
+    Higher interpolation for smoother motion with larger file size.</p>
 
-    <p style="opacity:0.7">
-    These presets control how MP4 frames are sampled and interpolated into GIF output.
-    </p>
   </div>
 </div>
 
@@ -202,7 +188,6 @@ function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
-/* MODAL CONTROLS */
 function openModal() {
   document.getElementById("modal").style.display = "flex";
 }
@@ -211,13 +196,11 @@ function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-/* TOOL CALL */
 const API_URL = "https://media-lab.onrender.com/upload";
 
 async function runTool() {
   const file = document.getElementById("file").files[0];
-  const tool = document.getElementById("tool").value;
-  const preset = document.getElementById("preset").value;
+  const presetUI = document.getElementById("preset").value;
 
   if (!file) {
     document.getElementById("output").innerText = "Please select a file.";
@@ -226,9 +209,16 @@ async function runTool() {
 
   document.getElementById("output").innerText = "Processing...";
 
+  // FIX: frontend → backend preset mapping
+  const presetMap = {
+    balanced: "balanced_v1",
+    fluid_motion: "fluid_motion_v1"
+  };
+
+  const preset = presetMap[presetUI] || "balanced_v1";
+
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("tool", tool);
   formData.append("preset", preset);
 
   try {
@@ -237,10 +227,17 @@ async function runTool() {
       body: formData
     });
 
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error("Server error: " + err);
+    }
+
     const data = await res.json();
 
+    const downloadUrl = "https://media-lab.onrender.com" + data.download_url;
+
     document.getElementById("output").innerHTML =
-      "Output: <a href='" + data.output_url + "' target='_blank'>Download GIF</a>";
+      "Output: <a href='" + downloadUrl + "' target='_blank'>Download GIF</a>";
 
   } catch (e) {
     document.getElementById("output").innerText =
