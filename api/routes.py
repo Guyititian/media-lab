@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File
+from fastapi.responses import FileResponse
 import uuid
 import os
 
@@ -9,7 +10,7 @@ router = APIRouter()
 
 
 # ----------------------------
-# UPLOAD
+# UPLOAD ROUTE
 # ----------------------------
 @router.post("/upload")
 async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
@@ -19,19 +20,14 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     input_path = f"/tmp/{job_id}_input.mp4"
     output_path = f"/tmp/{job_id}_output.gif"
 
-    # ----------------------------
-    # DEBUG (CRITICAL FOR YOUR ISSUE)
-    # ----------------------------
     print("🔥 PRESET RECEIVED:", preset)
 
-    # Save upload
+    # Save uploaded file
     contents = await file.read()
     with open(input_path, "wb") as f:
         f.write(contents)
 
-    # ----------------------------
-    # VALIDATE PRESET (NO SILENT FALLBACK)
-    # ----------------------------
+    # Validate preset
     if preset not in PRESETS:
         print("❌ INVALID PRESET:", preset)
         return {
@@ -39,22 +35,15 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
             "error": f"invalid preset: {preset}"
         }
 
-    # ----------------------------
-    # GET FILTER PIPELINE
-    # ----------------------------
     vf = PRESETS[preset]["vf"]
 
     print("🔥 APPLYING PRESET:", PRESETS[preset]["label"])
     print("🔥 VF START:", vf[:120])
 
-    # ----------------------------
-    # CRITICAL: PASS VF INTO PIPELINE
-    # ----------------------------
+    # Run FFmpeg pipeline
     build_gif(input_path, output_path, vf)
 
-    # ----------------------------
-    # SAFETY CHECK
-    # ----------------------------
+    # Validate output exists
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
         return {
             "job_id": job_id,
@@ -69,14 +58,34 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
 
 
 # ----------------------------
-# DOWNLOAD
+# DOWNLOAD ROUTE
 # ----------------------------
 @router.get("/download/{job_id}")
 def download(job_id: str):
+
     path = f"/tmp/{job_id}_output.gif"
 
     if not os.path.exists(path):
-        return {"error": "file_not_found"}
+        return {
+            "error": "file_not_found",
+            "job_id": job_id
+        }
 
-    from fastapi.responses import FileResponse
-    return FileResponse(path, media_type="image/gif", filename="output.gif")
+    return FileResponse(
+        path,
+        media_type="image/gif",
+        filename="output.gif"
+    )
+
+
+# ----------------------------
+# OPTIONAL: TOOL DISCOVERY
+# ----------------------------
+@router.get("/tools")
+def tools():
+    return {
+        "gif_motion": {
+            "name": "GIF Motion",
+            "presets": list(PRESETS.keys())
+        }
+    }
