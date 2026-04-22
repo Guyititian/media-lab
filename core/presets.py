@@ -20,16 +20,15 @@ PRESETS = {
         "name": "fluid_motion_v1",
         "fps": 50,
 
-        # RESTORED stable high-quality pipeline (NO STRUCTURE CHANGES)
+        # RESTORED EXACT WORKING QUALITY BASELINE (NO DITHER CHANGE)
         "filter": (
             "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
-            "minterpolate=fps=50:mi_mode=mci:mc_mode=aobmc:me_mode=bidir,"
-            "eq=contrast=1.10:saturation=1.20:brightness=0.01,"
+            "minterpolate=fps=50:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
+            "eq=contrast=1.08:saturation=1.22:brightness=0.01,"
             "format=yuv444p,"
-            "hqdn3d=0.9:0.9:2:2,"
             "split[s0][s1];"
             "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
-            "[s1][p]paletteuse=dither=floyd_steinberg"
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=1"
         ),
         "target_mb": (6, 10)
     }
