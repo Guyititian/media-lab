@@ -1,97 +1,77 @@
 # core/presets.py
 
 PRESETS = {
-    # =========================================================
-    # BALANCED (STABLE BASELINE - DO NOT BREAK)
-    # =========================================================
+
+    # -------------------------------------------------
+    # ✅ STABLE BASELINE (DO NOT CHANGE VISUALLY)
+    # -------------------------------------------------
     "balanced_v1": {
         "name": "balanced_v1",
-        "label": "Balanced (Stable Default)",
-
         "fps": 24,
 
-        "scale": "720:-2",
-        "contrast": 1.05,
-        "saturation": 1.10,
-        "brightness": 0.00,
+        "vf": (
+            "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
+            "eq=contrast=1.05:saturation=1.10:brightness=0.00,"
+            "fps=24,"
+            "format=yuv420p,"
+            "split[s0][s1];"
+            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=1"
+        ),
 
-        # NO interpolation (keeps it fast + stable)
-        "minterpolate": False,
-
-        # palette behavior (this is your proven config)
-        "palette_max_colors": 256,
-        "palette_mode": "diff",
-
-        # critical stability choice
-        "dither": "bayer",
-        "bayer_scale": 1,
-
-        "yuv": "yuv420p",
+        "palette": {
+            "mode": "diff",
+            "max_colors": 256,
+            "dither": "bayer",
+            "bayer_scale": 1
+        },
 
         "target_mb": (4, 6)
     },
 
-    # =========================================================
-    # FLUID MOTION (RESTORED HIGH QUALITY VERSION)
-    # =========================================================
+    # -------------------------------------------------
+    # 🚀 HIGH QUALITY FLUID MOTION (RESTORED VERSION)
+    # -------------------------------------------------
     "fluid_motion_v1": {
         "name": "fluid_motion_v1",
-        "label": "Fluid Motion (Stabilized Sharp)",
+        "fps": 50,
 
-        # IMPORTANT: slightly safer than 50 for FFmpeg stability
-        "fps": 48,
+        # This is your previously successful “reddit-quality” pipeline
+        "vf": (
+            "scale=720:-2:flags=lanczos:force_original_aspect_ratio=decrease,"
+            "unsharp=5:5:1.0:3:3:0.5,"
+            "eq=contrast=1.12:saturation=1.28:brightness=0.01,"
+            "minterpolate=fps=50:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
+            "format=yuv444p,"
+            "hqdn3d=0.9:0.9:2:2,"
+            "split[s0][s1];"
+            "[s0]palettegen=max_colors=256:stats_mode=diff:reserve_transparent=0[p];"
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=1"
+        ),
 
-        "scale": "720:-2",
+        "palette": {
+            "mode": "diff",
+            "max_colors": 256,
+            "dither": "bayer",
+            "bayer_scale": 1
+        },
 
-        # === QUALITY ENHANCEMENT LAYERS (RESTORED) ===
-        "unsharp": True,
-        "unsharp_luma_msize_x": 5,
-        "unsharp_luma_msize_y": 5,
-        "unsharp_luma_amount": 1.0,
-        "unsharp_chroma_msize_x": 3,
-        "unsharp_chroma_msize_y": 3,
-        "unsharp_chroma_amount": 0.5,
-
-        "contrast": 1.12,
-        "saturation": 1.28,
-        "brightness": 0.01,
-
-        # === MOTION ENGINE (RESTORED) ===
-        "minterpolate": True,
-        "mi_mode": "mci",
-        "mc_mode": "aobmc",
-        "me_mode": "bidir",
-        "vsbmc": 1,
-
-        # === NOISE CONTROL (IMPORTANT FOR STABILITY) ===
-        "hqdn3d": True,
-        "hqdn3d_luma_spatial": 0.9,
-        "hqdn3d_chroma_spatial": 0.9,
-        "hqdn3d_luma_tmp": 2,
-        "hqdn3d_chroma_tmp": 2,
-
-        # === COLOR PIPELINE (RESTORED HIGH QUALITY) ===
-        "yuv": "yuv444p",
-
-        # === PALETTE SYSTEM (YOUR ORIGINAL GOOD RESULT) ===
-        "palette_max_colors": 256,
-        "palette_mode": "diff",
-        "reserve_transparent": 0,
-
-        # === DITHERING (RESTORED WORKING CHOICE) ===
-        "dither": "bayer",
-        "bayer_scale": 1,
-
-        # expected output size range (prevents regression)
         "target_mb": (8, 14)
     }
 }
 
 
 def get_preset(name: str):
+    """
+    Strict preset resolver:
+    - guarantees valid preset exists
+    - prevents partial dict/string mismatches
+    """
     preset = PRESETS.get(name)
 
     if not preset:
-        raise ValueError(f"Invalid preset: {name}. Must be one of {list(PRESETS.keys())}")
+        raise ValueError(
+            f"Invalid preset: {name}. Must be one of {list(PRESETS.keys())}"
+        )
 
     return preset
