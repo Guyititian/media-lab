@@ -26,9 +26,7 @@ body {
   font-weight: bold;
 }
 
-.brand:hover {
-  opacity: 0.7;
-}
+.brand:hover { opacity: 0.7; }
 
 /* MAIN */
 .container {
@@ -47,7 +45,7 @@ label {
   opacity: 0.7;
 }
 
-input, select, button {
+input, button {
   width: 100%;
   margin-top: 6px;
   padding: 10px;
@@ -62,14 +60,13 @@ button {
   cursor: pointer;
 }
 
-/* STATUS BOX */
+/* TOOL STATUS */
 #status {
   margin-top: 16px;
   font-size: 13px;
   opacity: 0.8;
 }
 
-/* LOADING ANIMATION */
 .loader {
   margin-top: 12px;
   width: 18px;
@@ -82,19 +79,49 @@ button {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
+  100% { transform: rotate(360deg); }
 }
 
-/* PRESET INFO PANEL */
-#presetInfo {
+/* =========================
+   PRESET TILES (NEW UI)
+========================= */
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
   margin-top: 10px;
-  font-size: 12px;
-  opacity: 0.75;
-  line-height: 1.4;
 }
 
-/* OUTPUT CARD */
+.presetCard {
+  padding: 12px;
+  border-radius: 8px;
+  background: #111;
+  border: 1px solid #222;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.presetCard:hover {
+  border-color: #555;
+}
+
+.presetCard.active {
+  border-color: white;
+  background: #1a1a1a;
+}
+
+.presetTitle {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.presetDesc {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* OUTPUT */
 #output {
   margin-top: 16px;
   font-size: 14px;
@@ -128,25 +155,34 @@ a {
   <label>Upload File</label>
   <input type="file" id="file">
 
-  <label>Tool</label>
-  <select id="tool">
-    <option value="gif_motion">GIF Motion</option>
-  </select>
-
   <label>Preset</label>
-  <select id="preset" onchange="updatePresetInfo()">
-    <option value="balanced_v1">Balanced</option>
-    <option value="fluid_motion_v1">Fluid Motion</option>
-    <option value="cinematic_v1">Cinematic</option>
-  </select>
 
-  <div id="presetInfo"></div>
+  <!-- NEW TILE UI -->
+  <div class="presetGrid">
+
+    <div class="presetCard active" onclick="selectPreset('balanced_v1', this)">
+      <div class="presetTitle">Balanced</div>
+      <div class="presetDesc">Stable output. Clean colors, low artifacts, consistent motion.</div>
+    </div>
+
+    <div class="presetCard" onclick="selectPreset('fluid_motion_v1', this)">
+      <div class="presetTitle">Fluid Motion</div>
+      <div class="presetDesc">Smoother motion with stronger interpolation and richer color depth.</div>
+    </div>
+
+    <div class="presetCard" onclick="selectPreset('cinematic_v1', this)">
+      <div class="presetTitle">Cinematic</div>
+      <div class="presetDesc">Highest visual intensity. Enhanced contrast, motion smoothing, film-like output.</div>
+    </div>
+
+  </div>
+
+  <input type="hidden" id="preset" value="balanced_v1">
 
   <button onclick="runTool()">Run Tool</button>
 
   <div class="loader" id="loader"></div>
   <div id="status"></div>
-
   <div id="output"></div>
 </div>
 
@@ -154,20 +190,18 @@ a {
 
 const API_URL = "https://media-lab.onrender.com/upload";
 
-/* FRONTEND-ONLY DESCRIPTORS (SAFE ADDITION) */
-const PRESET_INFO = {
-  balanced_v1: "Stable output. Clean colors, low artifacts, standard motion rendering.",
-  fluid_motion_v1: "Enhanced smoothness with stronger motion interpolation and more vivid color grading.",
-  cinematic_v1: "Highest visual emphasis. Strong motion smoothing + enhanced contrast + cinematic color shaping."
-};
-
 function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
-function updatePresetInfo() {
-  const preset = document.getElementById("preset").value;
-  document.getElementById("presetInfo").innerText = PRESET_INFO[preset] || "";
+/* PRESET SELECTION (SAFE, BACKEND-UNCHANGED) */
+function selectPreset(value, el) {
+  document.getElementById("preset").value = value;
+
+  document.querySelectorAll(".presetCard")
+    .forEach(c => c.classList.remove("active"));
+
+  el.classList.add("active");
 }
 
 async function runTool() {
@@ -177,7 +211,7 @@ async function runTool() {
 
   try {
     const file = document.getElementById("file").files[0];
-    const tool = document.getElementById("tool").value;
+    const tool = "gif_motion";
     const preset = document.getElementById("preset").value;
 
     if (!file) {
@@ -186,7 +220,7 @@ async function runTool() {
     }
 
     outputEl.innerHTML = "";
-    statusEl.innerText = "Processing video...";
+    statusEl.innerText = "Processing...";
     loader.style.display = "block";
 
     const formData = new FormData();
@@ -199,35 +233,15 @@ async function runTool() {
       body: formData
     });
 
-    const raw = await res.text();
+    const data = await res.json();
 
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch (e) {
-      throw new Error("Invalid JSON from backend");
-    }
+    if (!res.ok) throw new Error(data.error || "Request failed");
 
-    if (!res.ok) {
-      throw new Error(data.error || "Request failed");
-    }
+    const urlPart = data.output_url;
+    const finalUrl = new URL(urlPart, "https://media-lab.onrender.com").href;
 
-    if (!data.output_url) {
-      throw new Error("Missing output_url");
-    }
-
-    const urlPart =
-      typeof data.output_url === "string"
-        ? data.output_url
-        : data.output_url.output_url;
-
-    const finalUrl = new URL(
-      urlPart,
-      "https://media-lab.onrender.com"
-    ).href;
-
-    statusEl.innerText = "Complete ✔";
     loader.style.display = "none";
+    statusEl.innerText = "Complete ✔";
 
     outputEl.innerHTML = `
       <div class="resultCard">
@@ -237,15 +251,11 @@ async function runTool() {
     `;
 
   } catch (err) {
-    console.error(err);
     loader.style.display = "none";
     statusEl.innerText = "";
     outputEl.innerText = "ERROR: " + err.message;
   }
 }
-
-/* init */
-updatePresetInfo();
 
 </script>
 
