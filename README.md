@@ -1,100 +1,111 @@
-# Media-Lab
+# Media Tiles
 
-Media-Lab is a lightweight media processing service designed to transform video inputs into optimized motion GIF outputs using configurable presets. It is built to pair directly with the Media-Tiles frontend as a rendering tool layer inside a broader media curation system.
-
-At its core, Media-Lab takes uploaded video files, applies motion and visual enhancement presets, and returns a downloadable optimized GIF.
+A structured visual library for browsing and sharing organized image collections across genres, franchises, decades, studios, and curated themes.
 
 ---
 
-## 🌐 Live System
+## 🌐 Open the App
 
-- Frontend: Media-Tiles UI (GitHub Pages)
-- Backend: Render-hosted API service
-- Output: Optimized GIF files served via static endpoint
+👉 https://guyititian.github.io/media-tiles/
 
 ---
 
-## 🧰 Core Features
+## ⚡ What You Can Do
 
-### GIF Motion Processing
-Convert MP4 (or compatible video formats) into high-quality GIF outputs with motion-aware processing.
+Media Tiles is more than a static library — it also connects to **Media-Lab**, a built-in processing layer for generating and transforming media.
 
-### Preset-Based Rendering
-Each preset controls motion interpolation, visual fidelity, and output compression behavior.
+### Browse
+- Explore curated tile collections
+- Navigate genres, franchises, decades, and more
+- Copy direct image URLs instantly
 
-Available presets:
-
-- **Balanced (balanced_v1)**
-  - Stable output baseline
-  - Clean motion
-  - Minimal artifacts
-  - Optimized file size
-
-- **Fluid Motion (fluid_motion_v1)**
-  - Higher interpolation strength
-  - Smoother motion rendering
-  - Enhanced perceived frame continuity
-
-- **Cinematic (cinematic_v1)**
-  - Builds on Fluid Motion base
-  - Increased visual intensity
-  - Higher contrast and perceptual sharpness
-  - Film-like motion smoothing
-  - Variable output size depending on source complexity
+### Create (Media-Lab Tools)
+- Convert videos into high-quality GIFs
+- Apply motion and visual presets
+- Generate downloadable media outputs
 
 ---
 
-## 🧱 System Architecture
+## 📁 Core System
 
-Media-Lab is split into two connected layers:
+### Media Tiles (Library)
+A fast, lightweight catalog for:
+- Organizing visual media into structured collections
+- Serving images via direct URLs
+- Powering dashboards and media setups
 
-### 1. Frontend (Media-Tiles UI)
-- Static HTML/JS interface
-- Hosted via GitHub Pages
-- Handles:
-  - File upload
-  - Preset selection
-  - API requests
-  - Download handling
-
-### 2. Backend (Media-Lab API)
-- Python FastAPI service (Uvicorn)
-- Hosted on Render
-- Handles:
-  - Video ingestion
-  - FFmpeg processing pipeline
-  - Preset configuration mapping
-  - Output generation and storage
+### Media Lab (Processing Engine)
+A backend tool system that:
+- Accepts uploaded media
+- Applies preset-based transformations
+- Returns processed outputs (GIFs, future formats)
 
 ---
 
-## 🔗 Media-Tiles Integration
+## 🔗 How They Work Together
 
-Media-Lab is designed as a tool module within the Media-Tiles ecosystem.
+Media Tiles and Media-Lab are designed as connected layers:
 
-Media-Tiles acts as the UI and catalog layer, while Media-Lab functions as the processing engine.
+- Media Tiles → discovery, organization, browsing  
+- Media Lab → transformation, processing, output  
 
-Future planned integrations:
-- Additional media transformation tools
-- Catalog-driven preset selection
-- Multi-tool routing system (GIF, upscale, interpolation, etc.)
-- Shared output library across tiles
+The library provides structure.  
+The lab provides capability.
 
 ---
 
-## ⚙️ API Overview
+## 📁 Collections
 
-### POST `/upload`
+Media Tiles is organized around:
 
-Uploads a file and processes it using the selected preset.
+- Genres  
+- Franchises  
+- Decades  
+- Networks  
+- Studios  
+- People  
+- Special collections  
 
-**Form Data:**
-- `file`: video file
-- `tool`: processing tool (currently `gif_motion`)
-- `preset`: rendering preset
+Each tile links directly to a hosted image.
 
-**Response:**
-```json
-{
-  "output_url": "/outputs/filename.gif"
-}
+---
+
+## 🖼️ Image Usage
+
+All images are served via GitHub Pages and can be used instantly via direct links.
+
+No downloads required.
+
+---
+
+## 🧭 Purpose
+
+This project is designed for:
+
+- Media server libraries  
+- Custom dashboards  
+- Personal organization systems  
+- UI mockups and visual collections  
+
+---
+
+## 🔗 Links
+
+App: https://guyititian.github.io/media-tiles/  
+Repo: https://github.com/Guyititian/media-tiles  
+
+---
+
+## 🚀 Direction
+
+Media Tiles is evolving into a hybrid system:
+
+- Visual media library (core)
+- Tool-enabled processing layer (Media-Lab)
+- Expandable architecture for future media tools
+
+---
+
+## 👤 Owner
+
+Built and maintained by Guyititian
