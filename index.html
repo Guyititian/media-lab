@@ -63,8 +63,12 @@ button:hover {
 #output {
   margin-top:15px;
   font-size:12px;
-  opacity:0.8;
+  opacity:0.85;
   word-break:break-all;
+}
+
+a {
+  color:#7dd3fc;
 }
 </style>
 </head>
@@ -73,12 +77,12 @@ button:hover {
 
 <div class="header">
   <h1>🛠 Media Lab</h1>
-  <p>Upload MP4 → process → generate GIF</p>
+  <p>Upload MP4 → select preset → generate GIF</p>
 </div>
 
 <div class="panel">
 
-  <label>Upload File (MP4 / Media)</label>
+  <label>Upload File</label>
   <input type="file" id="file">
 
   <label>Tool</label>
@@ -88,12 +92,11 @@ button:hover {
 
   <label>Preset</label>
   <select id="preset">
-    <option value="high">High Quality</option>
-    <option value="medium">Medium</option>
-    <option value="fast">Fast</option>
+    <option value="balanced">Balanced</option>
+    <option value="fluid_motion">Fluid Motion</option>
   </select>
 
-  <button onclick="run()">Generate</button>
+  <button onclick="runTool()">Generate</button>
 
   <div id="output"></div>
 
@@ -102,7 +105,7 @@ button:hover {
 <script>
 const API_URL = "https://media-lab.onrender.com/upload";
 
-async function run() {
+async function runTool() {
   const file = document.getElementById("file").files[0];
   const tool = document.getElementById("tool").value;
   const preset = document.getElementById("preset").value;
@@ -126,6 +129,12 @@ async function run() {
     });
 
     const data = await res.json();
+
+    if (!data.output_url) {
+      document.getElementById("output").innerText =
+        "Error: No output returned";
+      return;
+    }
 
     document.getElementById("output").innerHTML =
       "Output: <a href='" + data.output_url + "' target='_blank'>Download GIF</a>";
