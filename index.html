@@ -72,7 +72,7 @@ button:hover {
 #output {
   margin-top:15px;
   font-size:12px;
-  opacity:0.85;
+  opacity:0.9;
   word-break:break-all;
 }
 
@@ -130,7 +130,6 @@ a { color:#7dd3fc; }
 <body>
 
 <div class="header">
-
   <div class="brand" onclick="goHome()">
     Media-Tiles
   </div>
@@ -138,7 +137,6 @@ a { color:#7dd3fc; }
   <div class="header-right">
     Media-Lab Tools
   </div>
-
 </div>
 
 <div class="panel">
@@ -167,6 +165,7 @@ a { color:#7dd3fc; }
 
 </div>
 
+<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-content">
     <span class="close" onclick="closeModal()">✕</span>
@@ -174,10 +173,10 @@ a { color:#7dd3fc; }
     <h3>Preset Guide</h3>
 
     <p><b>Balanced</b><br>
-    Stable output with consistent file size and clean motion.</p>
+    Stable output with controlled file size and clean motion.</p>
 
     <p><b>Fluid Motion</b><br>
-    Higher interpolation for smoother motion with larger file size.</p>
+    Higher interpolation, smoother motion, larger file size.</p>
 
   </div>
 </div>
@@ -209,15 +208,22 @@ async function runTool() {
 
   document.getElementById("output").innerText = "Processing...";
 
-  // FIX: frontend → backend preset mapping
+  // IMPORTANT: MUST match backend preset keys
   const presetMap = {
     balanced: "balanced_v1",
     fluid_motion: "fluid_motion_v1"
   };
 
-  const preset = presetMap[presetUI] || "balanced_v1";
+  const preset = presetMap[presetUI];
+
+  if (!preset) {
+    document.getElementById("output").innerText = "Invalid preset selected.";
+    return;
+  }
 
   const formData = new FormData();
+
+  // MUST match FastAPI exactly
   formData.append("file", file);
   formData.append("preset", preset);
 
@@ -228,13 +234,14 @@ async function runTool() {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error("Server error: " + err);
+      const errText = await res.text();
+      throw new Error(errText);
     }
 
     const data = await res.json();
 
-    const downloadUrl = "https://media-lab.onrender.com" + data.download_url;
+    const downloadUrl =
+      "https://media-lab.onrender.com" + data.download_url;
 
     document.getElementById("output").innerHTML =
       "Output: <a href='" + downloadUrl + "' target='_blank'>Download GIF</a>";
