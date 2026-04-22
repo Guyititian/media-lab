@@ -1,52 +1,38 @@
-import os
-import uuid
+# tools/gif_motion.py
+
 import subprocess
-
-from core.presets import get_preset, PRESETS
-
-OUTPUT_DIR = "outputs"
-UPLOAD_DIR = "uploads"
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+import uuid
+from core.presets import PRESETS, get_preset
 
 
 def generate_gif(input_path: str, preset_name: str):
-    """
-    Generate GIF using resolved preset filter string.
-    """
-
     preset = get_preset(preset_name)
 
-    if "filter" not in preset:
-        raise ValueError(f"Preset '{preset_name}' missing filter key")
+    output_id = str(uuid.uuid4())
+    output_path = f"outputs/{output_id}.gif"
 
-    filter_chain = preset["filter"]
-
-    output_name = f"{uuid.uuid4()}.gif"
-    output_path = os.path.join(OUTPUT_DIR, output_name)
+    ffmpeg_cmd = [
+        "ffmpeg",
+        "-y",
+        "-i", input_path,
+        "-vf", preset["filter"],
+        "-r", str(preset["fps"]),
+        "-loop", "0",
+        output_path
+    ]
 
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("🔥 GIF MOTION ENGINE")
     print(f"🔥 INPUT: {input_path}")
     print(f"🔥 PRESET: {preset_name}")
     print("🔥 FILTER PIPELINE:")
-    print(filter_chain)
+    print(preset["filter"])
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-i", input_path,
-        "-vf", filter_chain,
-        "-loop", "0",
-        output_path
-    ]
+    subprocess.run(ffmpeg_cmd, check=True)
 
-    subprocess.run(cmd, check=True)
-
-    return f"/outputs/{output_name}"
+    return output_path
 
 
-# IMPORTANT: expose PRESETS if routes still imports it anywhere
-# (prevents accidental import crashes during deploy overlap)
+# REQUIRED FOR ROUTES IMPORT (fixes your crash)
+PRESETS = PRESETS
