@@ -15,48 +15,21 @@ def generate_gif(input_path: str, preset_name: str):
     output_name = f"{uuid.uuid4()}.gif"
     output_path = os.path.join(OUTPUT_DIR, output_name)
 
-    # ------------------------------------------------------------
-    # SAFETY LAYER: prevent Render timeout / runaway ffmpeg
-    # ------------------------------------------------------------
+    vf = preset.get("vf")
 
-    # Force lightweight GIF-friendly constraints at runtime
-    base_filter = preset["filter"]
-
-    # Ensure stable fps + scaling safety without altering preset system
-    safe_filter = f"{base_filter},fps=24,scale=720:-1:flags=lanczos"
+    if not vf:
+        raise ValueError(f"Preset '{preset_name}' missing 'vf' filter chain")
 
     cmd = [
         "ffmpeg",
         "-y",
-
-        # input
         "-i", input_path,
-
-        # safety-limited filter chain
-        "-vf", safe_filter,
-
-        # reduce GIF memory explosion
-        "-gifflags", "+transdiff",
-        "-pix_fmt", "rgb24",
-
-        # loop forever (GIF standard behavior)
+        "-vf", vf,
         "-loop", "0",
-
         output_path
     ]
 
-    try:
-        subprocess.run(
-            cmd,
-            check=True,
-            timeout=120  # prevents Render hard kill / 502
-        )
-
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("GIF generation timed out (preset too heavy for server limits)")
-
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"FFmpeg failed: {str(e)}")
+    subprocess.run(cmd, check=True)
 
     return {
         "output_path": output_path,
