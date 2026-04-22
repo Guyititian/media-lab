@@ -1,19 +1,29 @@
-import imageio_ffmpeg
 import subprocess
+import os
+import uuid
+from core.presets import PRESETS
 
-def build_gif(input_path, output_path, vf):
-    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
-    print("🔥 APPLYING VF:", vf[:120], "...")  # DEBUG (important)
+def generate_gif(input_path: str, preset_key: str, output_dir: str = "outputs") -> str:
+    os.makedirs(output_dir, exist_ok=True)
 
-    command = [
-        ffmpeg,
+    preset = PRESETS.get(preset_key, PRESETS["balanced_v1"])
+    vf = preset["vf"]
+
+    output_path = os.path.join(output_dir, f"{uuid.uuid4()}.gif")
+
+    print("🔥 USING PRESET:", preset_key)
+    print("🔥 FILTER STRING:", vf)
+
+    cmd = [
+        "ffmpeg",
         "-y",
         "-i", input_path,
         "-vf", vf,
-        "-loop", "0",
-        "-fs", "10M",
+        "-an",
         output_path
     ]
 
-    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(cmd, check=True)
+
+    return output_path
