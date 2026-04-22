@@ -9,9 +9,6 @@ from tools.gif_motion import build_gif
 
 router = APIRouter()
 
-# Simple in-memory storage (MVP safe)
-storage = {}
-
 
 # ----------------------------
 # UPLOAD ENDPOINT
@@ -22,8 +19,9 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
 
     input_path = f"/tmp/{job_id}_input.mp4"
     output_path = f"/tmp/{job_id}_output.gif"
+    final_path = f"/tmp/{job_id}.gif"
 
-    # Save uploaded file
+    # Save upload
     contents = await file.read()
     with open(input_path, "wb") as f:
         f.write(contents)
@@ -37,16 +35,19 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
     # Run GIF pipeline
     build_gif(input_path, output_path, vf)
 
-    # Validate output
+    # Validate output exists
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
         return {
             "job_id": job_id,
             "error": "conversion_failed"
         }
 
-    # Store result in memory
+    # Read and persist to disk (IMPORTANT FIX)
     with open(output_path, "rb") as f:
-        storage[job_id] = f.read()
+        gif_bytes = f.read()
+
+    with open(final_path, "wb") as f:
+        f.write(gif_bytes)
 
     return {
         "job_id": job_id,
@@ -61,23 +62,20 @@ async def upload(file: UploadFile = File(...), preset: str = "balanced_v1"):
 # ----------------------------
 @router.get("/download/{job_id}")
 def download(job_id: str):
-    if job_id not in storage:
+    path = f"/tmp/{job_id}.gif"
+
+    if not os.path.exists(path):
         return {"error": "file_not_ready"}
 
-    output_path = f"/tmp/{job_id}_output.gif"
-
-    with open(output_path, "wb") as f:
-        f.write(storage[job_id])
-
     return FileResponse(
-        output_path,
+        path,
         media_type="image/gif",
         filename="output.gif"
     )
 
 
 # ----------------------------
-# TOOLS ENDPOINT (FOR MEDIA-TILES UI)
+# TOOLS ENDPOINT
 # ----------------------------
 @router.get("/tools")
 def tools():
