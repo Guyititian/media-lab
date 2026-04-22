@@ -12,33 +12,52 @@ body {
   font-family:Arial;
 }
 
+/* HEADER */
 .header {
   display:flex;
   justify-content:space-between;
-  align-items:center;
   padding:20px 30px;
   background:#111;
   border-bottom:1px solid #222;
 }
 
 .brand {
-  font-size:16px;
   font-weight:bold;
   cursor:pointer;
 }
 
-.brand:hover {
-  opacity:0.7;
+.brand:hover { opacity:0.7; }
+
+/* TOOL GRID */
+.tools {
+  display:flex;
+  gap:15px;
+  padding:20px;
+  justify-content:center;
 }
 
-.header-right {
-  font-size:12px;
-  opacity:0.6;
+.tool-card {
+  background:#1c1c1c;
+  padding:15px;
+  border-radius:10px;
+  cursor:pointer;
+  width:180px;
+  text-align:center;
+  transition:0.2s;
 }
 
+.tool-card:hover {
+  background:#252525;
+}
+
+.tool-card.active {
+  outline:2px solid white;
+}
+
+/* PANEL */
 .panel {
   max-width:520px;
-  margin:40px auto;
+  margin:20px auto;
   background:#1c1c1c;
   padding:20px;
   border-radius:12px;
@@ -47,8 +66,8 @@ body {
 label {
   font-size:12px;
   opacity:0.7;
-  display:block;
   margin-top:10px;
+  display:block;
 }
 
 input, select, button {
@@ -65,17 +84,42 @@ button {
   cursor:pointer;
 }
 
-button:hover {
-  opacity:0.85;
-}
-
 #output {
   margin-top:15px;
   font-size:12px;
-  word-break:break-all;
 }
 
-a { color:#7dd3fc; }
+/* HELP */
+.help {
+  font-size:12px;
+  cursor:pointer;
+  opacity:0.6;
+}
+
+.help:hover { opacity:1; }
+
+/* MODAL */
+.modal {
+  position:fixed;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-content {
+  background:#1c1c1c;
+  padding:20px;
+  border-radius:10px;
+  max-width:420px;
+}
+
+.close {
+  float:right;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -84,52 +128,100 @@ a { color:#7dd3fc; }
 <!-- HEADER -->
 <div class="header">
   <div class="brand" onclick="goHome()">Media-Tiles</div>
-  <div class="header-right">Media-Lab Tools</div>
+  <div>Media-Lab Dashboard</div>
 </div>
 
-<!-- PANEL -->
+<!-- TOOL SELECTOR -->
+<div class="tools">
+  <div class="tool-card active" onclick="selectTool('gif_motion')" id="tool_gif_motion">
+    GIF Motion
+  </div>
+
+  <!-- FUTURE TOOLS -->
+  <!--
+  <div class="tool-card">Upscale</div>
+  -->
+</div>
+
+<!-- CONFIG PANEL -->
 <div class="panel">
+
+  <h3 id="toolTitle">GIF Motion</h3>
 
   <label>Upload File</label>
   <input type="file" id="file">
 
-  <label>Preset</label>
+  <label>Preset 
+    <span class="help" onclick="openModal()">?</span>
+  </label>
+
   <select id="preset">
     <option value="balanced_v1">Balanced</option>
     <option value="fluid_motion_v1">Fluid Motion</option>
   </select>
 
-  <button onclick="runTool()">Generate</button>
+  <button onclick="runTool()">Run Tool</button>
 
   <div id="output"></div>
 
 </div>
 
+<!-- PRESET MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">✕</span>
+    <h3>Preset Guide</h3>
+
+    <p><b>Balanced</b><br>
+    Stable motion and optimized file size.</p>
+
+    <p><b>Fluid Motion</b><br>
+    Smoother motion using more interpolation.</p>
+
+  </div>
+</div>
+
 <script>
+let currentTool = "gif_motion";
 
 function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
+function selectTool(tool) {
+  currentTool = tool;
+
+  document.querySelectorAll(".tool-card").forEach(el => el.classList.remove("active"));
+  document.getElementById("tool_" + tool).classList.add("active");
+
+  document.getElementById("toolTitle").innerText =
+    tool === "gif_motion" ? "GIF Motion" : tool;
+}
+
+function openModal() {
+  document.getElementById("modal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
 const API_URL = "https://media-lab.onrender.com/upload";
 
 async function runTool() {
-
   const file = document.getElementById("file").files[0];
   const preset = document.getElementById("preset").value;
 
   if (!file) {
-    document.getElementById("output").innerText = "Please select a file.";
+    document.getElementById("output").innerText = "Select a file.";
     return;
   }
 
   document.getElementById("output").innerText = "Processing...";
 
-  // 🔥 HARD DEBUG (YOU NEED THIS)
-  console.log("🔥 SELECTED PRESET:", preset);
-
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("tool", currentTool);
   formData.append("preset", preset);
 
   try {
@@ -140,24 +232,13 @@ async function runTool() {
 
     const data = await res.json();
 
-    console.log("🔥 SERVER RESPONSE:", data);
-
-    if (data.error) {
-      throw new Error(JSON.stringify(data));
-    }
-
-    const downloadUrl =
-      "https://media-lab.onrender.com" + data.download_url;
-
     document.getElementById("output").innerHTML =
-      "Output: <a href='" + downloadUrl + "' target='_blank'>Download GIF</a>";
+      "<a href='" + data.output_url + "' target='_blank'>Download Output</a>";
 
   } catch (e) {
-    document.getElementById("output").innerText =
-      "Error: " + e.message;
+    document.getElementById("output").innerText = "Error: " + e.message;
   }
 }
-
 </script>
 
 </body>
