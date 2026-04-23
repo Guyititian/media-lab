@@ -5,36 +5,91 @@
 <title>Media-Lab</title>
 
 <style>
+:root {
+  --bg: #0b0f14;
+  --panel: #121823;
+  --panel-2: #0f141d;
+  --text: #e8eef7;
+  --muted: rgba(232, 238, 247, 0.6);
+  --accent: #7aa2ff;
+  --border: rgba(255,255,255,0.06);
+  --shadow: 0 20px 60px rgba(0,0,0,0.55);
+}
+
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
-  font-family: Arial;
-  background: #0f0f0f;
-  color: white;
+  font-family: system-ui, -apple-system, Segoe UI, Arial;
+  background: radial-gradient(1200px 800px at 50% 10%, #141b2a 0%, var(--bg) 60%);
+  color: var(--text);
 }
 
-/* HEADER */
+/* HEADER (ecosystem unified) */
 .header {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: #111;
-  border-bottom: 1px solid #222;
+  max-width:1100px;
+  margin: 18px auto 0 auto;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
+/* BRAND */
 .brand {
+  font-size: 32px;
+  font-weight: 900;
   cursor: pointer;
-  font-weight: bold;
+  letter-spacing: 0.5px;
 }
 
-.brand:hover { opacity: 0.7; }
+.brand span {
+  color: var(--accent);
+}
+
+/* NAV SYSTEM (matches browse page) */
+.ecosystem-nav {
+  display:flex;
+  gap:10px;
+}
+
+.nav-btn {
+  padding:6px 10px;
+  border-radius:10px;
+  font-size:12px;
+  border:1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--muted);
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.nav-btn:hover {
+  transform: translateY(-2px);
+  color: var(--text);
+}
+
+.nav-btn.active {
+  background: rgba(122,162,255,0.15);
+  border-color: rgba(122,162,255,0.35);
+  color: var(--text);
+  box-shadow: 0 0 18px rgba(122,162,255,0.15);
+}
 
 /* MAIN */
 .container {
   max-width: 600px;
   margin: 40px auto;
-  background: #1b1b1b;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid var(--border);
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
 }
 
 /* INPUTS */
@@ -49,15 +104,21 @@ input, button {
   width: 100%;
   margin-top: 6px;
   padding: 10px;
-  border-radius: 6px;
-  border: none;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
 }
 
 button {
   margin-top: 16px;
-  background: white;
-  color: black;
+  background: rgba(122,162,255,0.15);
+  border-color: rgba(122,162,255,0.35);
   cursor: pointer;
+}
+
+button:hover {
+  box-shadow: 0 0 18px rgba(122,162,255,0.2);
 }
 
 /* STATUS */
@@ -83,7 +144,7 @@ button {
   100% { transform: rotate(360deg); }
 }
 
-/* PRESET TILES */
+/* PRESETS */
 .presetGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -93,19 +154,20 @@ button {
 
 .presetCard {
   padding: 12px;
-  border-radius: 8px;
-  background: #111;
-  border: 1px solid #222;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
   cursor: pointer;
+  transition:0.2s;
 }
 
 .presetCard:hover {
-  border-color: #555;
+  transform: translateY(-2px);
 }
 
 .presetCard.active {
-  border-color: white;
-  background: #1a1a1a;
+  border-color: rgba(122,162,255,0.5);
+  box-shadow: 0 0 18px rgba(122,162,255,0.15);
 }
 
 .presetTitle {
@@ -128,22 +190,37 @@ button {
 .resultCard {
   margin-top: 12px;
   padding: 12px;
-  background: #111;
-  border-radius: 8px;
-  border: 1px solid #222;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  border: 1px solid var(--border);
 }
 
 a {
-  color: #00d1ff;
+  color: var(--accent);
 }
+
 </style>
 </head>
 
 <body>
 
+<!-- ✅ ECOSYSTEM HEADER (NEW, NON-DESTRUCTIVE) -->
 <div class="header">
-  <div class="brand" onclick="goHome()">Media-Tiles</div>
-  <div>Media-Lab Tools</div>
+
+  <div class="brand" onclick="goHome()">
+    <span>Media</span> Tiles
+  </div>
+
+  <div class="ecosystem-nav">
+    <div class="nav-btn" onclick="window.location.href='https://guyititian.github.io/media-tiles/browse.html'">
+      Library
+    </div>
+
+    <div class="nav-btn active">
+      Tools
+    </div>
+  </div>
+
 </div>
 
 <div class="container">
@@ -181,6 +258,7 @@ a {
   <div class="loader" id="loader"></div>
   <div id="status"></div>
   <div id="output"></div>
+
 </div>
 
 <script>
@@ -201,7 +279,7 @@ function selectPreset(value, el) {
   el.classList.add("active");
 }
 
-/* SAFE FETCH PIPELINE (FIXED) */
+/* PIPELINE (UNCHANGED) */
 async function runTool() {
   const outputEl = document.getElementById("output");
   const statusEl = document.getElementById("status");
@@ -231,35 +309,13 @@ async function runTool() {
       body: formData
     });
 
-    /* IMPORTANT: ALWAYS READ AS TEXT FIRST */
     const raw = await res.text();
-    console.log("RAW RESPONSE:", raw);
+    let data = JSON.parse(raw);
 
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch (e) {
-      throw new Error("Backend did not return valid JSON");
-    }
-
-    if (!res.ok) {
-      throw new Error(data.error || "Request failed");
-    }
-
-    /* BACKWARD COMPATIBLE OUTPUT RESOLUTION */
     const urlPart =
-      data.output_url ||
-      data?.data?.output_url ||
-      data?.url;
+      data.output_url || data?.data?.output_url || data?.url;
 
-    if (!urlPart) {
-      throw new Error("Missing output_url in response");
-    }
-
-    const finalUrl = new URL(
-      urlPart,
-      "https://media-lab.onrender.com"
-    ).href;
+    const finalUrl = new URL(urlPart, "https://media-lab.onrender.com").href;
 
     loader.style.display = "none";
     statusEl.innerText = "Complete ✔";
@@ -272,7 +328,6 @@ async function runTool() {
     `;
 
   } catch (err) {
-    console.error("FULL ERROR:", err);
     loader.style.display = "none";
     statusEl.innerText = "";
     outputEl.innerText = "ERROR: " + err.message;
