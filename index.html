@@ -31,7 +31,7 @@ body {
 }
 
 /* =========================
-   ECOSYSTEM HEADER (MATCH LIBRARY)
+   ECOSYSTEM HEADER
 ========================= */
 
 .header {
@@ -56,7 +56,7 @@ body {
   margin-bottom: 14px;
 }
 
-/* BRAND (MATCH LIBRARY SCALE) */
+/* BRAND */
 .brand {
   font-size: 30px;
   font-weight: 900;
@@ -71,7 +71,18 @@ body {
   color: var(--accent);
 }
 
-/* NAV SYSTEM (LIBRARY PARITY) */
+/* optional ecosystem glow anchor (matches library identity) */
+.brand::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(122,162,255,0.8);
+  display: inline-block;
+}
+
+/* NAV SYSTEM (NOW SYMMETRICAL) */
 .ecosystem-nav {
   display:flex;
   gap:10px;
@@ -101,7 +112,7 @@ body {
 }
 
 /* =========================
-   MAIN TOOL PANEL
+   TOOL PANEL
 ========================= */
 
 .container {
@@ -114,14 +125,12 @@ body {
   box-shadow: var(--shadow);
 }
 
-/* TITLE */
 h2 {
   font-size: 18px;
   margin: 0 0 14px 0;
   letter-spacing: 0.3px;
 }
 
-/* INPUTS */
 label {
   display:block;
   margin-top:14px;
@@ -140,7 +149,7 @@ input, button {
   outline:none;
 }
 
-/* BUTTON PRIMARY */
+/* PRIMARY BUTTON */
 button {
   margin-top:16px;
   background: rgba(122,162,255,0.15);
@@ -153,10 +162,7 @@ button:hover {
   transform: translateY(-2px);
 }
 
-/* =========================
-   PRESET GRID (NOW MATCHES TILES)
-========================= */
-
+/* PRESETS */
 .presetGrid {
   display:grid;
   gap:12px;
@@ -176,7 +182,6 @@ button:hover {
 .presetCard:hover {
   transform: translateY(-4px);
   border-color: rgba(122,162,255,0.25);
-  box-shadow: 0 18px 50px rgba(0,0,0,0.45);
 }
 
 .presetCard.active {
@@ -195,7 +200,7 @@ button:hover {
   color: var(--muted);
 }
 
-/* STATUS + OUTPUT */
+/* STATUS */
 #status {
   margin-top:14px;
   font-size:13px;
@@ -240,7 +245,6 @@ a { color: var(--accent); }
 
 <div class="page">
 
-  <!-- ECOSYSTEM HEADER -->
   <div class="header">
 
     <div class="brand-row">
@@ -249,16 +253,25 @@ a { color: var(--accent); }
         <span>Media</span> Tiles
       </div>
 
+      <!-- FIXED NAV (SYMMETRICAL + CORRECT ROUTING) -->
       <div class="ecosystem-nav">
-        <div class="nav-btn" onclick="goHome()">Library</div>
-        <div class="nav-btn active">Tools</div>
+
+        <div class="nav-btn"
+             onclick="window.location.href='https://guyititian.github.io/media-tiles/browse.html'">
+          Library
+        </div>
+
+        <div class="nav-btn active"
+             onclick="window.location.href='https://guyititian.github.io/media-lab/'">
+          Tools
+        </div>
+
       </div>
 
     </div>
 
   </div>
 
-  <!-- TOOL PANEL -->
   <div class="container">
 
     <h2>GIF Motion Tool</h2>
@@ -303,11 +316,12 @@ a { color: var(--accent); }
 
 const API_URL = "https://media-lab.onrender.com/upload";
 
+/* FIXED: now aligned to ecosystem behavior decision */
 function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
-/* PRESET SELECTOR (UNCHANGED FUNCTIONALITY) */
+/* PRESERVES FUNCTIONALITY */
 function selectPreset(value, el) {
   document.getElementById("preset").value = value;
 
@@ -317,7 +331,7 @@ function selectPreset(value, el) {
   el.classList.add("active");
 }
 
-/* TOOL LOGIC (UNCHANGED) */
+/* UNCHANGED TOOL PIPELINE */
 async function runTool() {
   const outputEl = document.getElementById("output");
   const statusEl = document.getElementById("status");
