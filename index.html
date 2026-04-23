@@ -19,40 +19,59 @@
 * { box-sizing: border-box; }
 
 body {
-  margin: 0;
+  margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Arial;
-  background: radial-gradient(1200px 800px at 50% 10%, #141b2a 0%, var(--bg) 60%);
   color: var(--text);
+  background: radial-gradient(1200px 800px at 50% 10%, #141b2a 0%, var(--bg) 60%);
 }
 
-/* HEADER (ecosystem unified) */
+/* PAGE WRAP */
+.page {
+  padding: 28px;
+}
+
+/* =========================
+   ECOSYSTEM HEADER (MATCH LIBRARY)
+========================= */
+
 .header {
-  max-width:1100px;
-  margin: 18px auto 0 auto;
-  padding: 14px 18px;
-  border-radius: 18px;
+  max-width: 1100px;
+  margin: 0 auto 18px auto;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 22px;
   box-shadow: var(--shadow);
-
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
 }
 
-/* BRAND */
+/* BRAND ROW */
+.brand-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  margin-bottom: 14px;
+}
+
+/* BRAND (MATCH LIBRARY SCALE) */
 .brand {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 900;
-  cursor: pointer;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
 .brand span {
   color: var(--accent);
 }
 
-/* NAV SYSTEM (matches browse page) */
+/* NAV SYSTEM (LIBRARY PARITY) */
 .ecosystem-nav {
   display:flex;
   gap:10px;
@@ -78,186 +97,205 @@ body {
   background: rgba(122,162,255,0.15);
   border-color: rgba(122,162,255,0.35);
   color: var(--text);
-  box-shadow: 0 0 18px rgba(122,162,255,0.15);
+  box-shadow: 0 10px 30px rgba(122,162,255,0.08);
 }
 
-/* MAIN */
+/* =========================
+   MAIN TOOL PANEL
+========================= */
+
 .container {
-  max-width: 600px;
-  margin: 40px auto;
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  max-width: 1100px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--border);
-  padding: 20px;
-  border-radius: 14px;
+  border-radius: 18px;
+  padding: 22px;
   box-shadow: var(--shadow);
+}
+
+/* TITLE */
+h2 {
+  font-size: 18px;
+  margin: 0 0 14px 0;
+  letter-spacing: 0.3px;
 }
 
 /* INPUTS */
 label {
-  display: block;
-  margin-top: 12px;
-  font-size: 12px;
-  opacity: 0.7;
+  display:block;
+  margin-top:14px;
+  font-size:12px;
+  color: var(--muted);
 }
 
 input, button {
-  width: 100%;
-  margin-top: 6px;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  width:100%;
+  padding:12px 14px;
+  margin-top:6px;
+  border-radius:12px;
+  border:1px solid var(--border);
   background: rgba(255,255,255,0.03);
   color: var(--text);
+  outline:none;
 }
 
+/* BUTTON PRIMARY */
 button {
-  margin-top: 16px;
+  margin-top:16px;
   background: rgba(122,162,255,0.15);
   border-color: rgba(122,162,255,0.35);
-  cursor: pointer;
+  cursor:pointer;
+  transition:0.2s;
 }
 
 button:hover {
-  box-shadow: 0 0 18px rgba(122,162,255,0.2);
+  transform: translateY(-2px);
 }
 
-/* STATUS */
+/* =========================
+   PRESET GRID (NOW MATCHES TILES)
+========================= */
+
+.presetGrid {
+  display:grid;
+  gap:12px;
+  margin-top:10px;
+}
+
+.presetCard {
+  padding:14px;
+  border-radius:14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:0.25s;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.presetCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(122,162,255,0.25);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+}
+
+.presetCard.active {
+  border-color: rgba(122,162,255,0.5);
+  box-shadow: 0 0 0 1px rgba(122,162,255,0.15), 0 18px 60px rgba(0,0,0,0.55);
+}
+
+.presetTitle {
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+
+.presetDesc {
+  font-size:12px;
+  color: var(--muted);
+}
+
+/* STATUS + OUTPUT */
 #status {
-  margin-top: 16px;
-  font-size: 13px;
-  opacity: 0.8;
+  margin-top:14px;
+  font-size:13px;
+  color: var(--muted);
+}
+
+#output {
+  margin-top:14px;
+  font-size:14px;
+}
+
+.resultCard {
+  margin-top:12px;
+  padding:14px;
+  border-radius:14px;
+  background: rgba(255,255,255,0.03);
+  border:1px solid var(--border);
 }
 
 /* LOADER */
 .loader {
-  margin-top: 12px;
-  width: 18px;
-  height: 18px;
-  border: 3px solid #444;
-  border-top: 3px solid white;
-  border-radius: 50%;
+  margin-top:12px;
+  width:18px;
+  height:18px;
+  border:3px solid #444;
+  border-top:3px solid white;
+  border-radius:50%;
   animation: spin 1s linear infinite;
-  display: none;
+  display:none;
 }
 
 @keyframes spin {
   100% { transform: rotate(360deg); }
 }
 
-/* PRESETS */
-.presetGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.presetCard {
-  padding: 12px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition:0.2s;
-}
-
-.presetCard:hover {
-  transform: translateY(-2px);
-}
-
-.presetCard.active {
-  border-color: rgba(122,162,255,0.5);
-  box-shadow: 0 0 18px rgba(122,162,255,0.15);
-}
-
-.presetTitle {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-.presetDesc {
-  font-size: 12px;
-  opacity: 0.7;
-}
-
-/* OUTPUT */
-#output {
-  margin-top: 16px;
-  font-size: 14px;
-  word-break: break-word;
-}
-
-.resultCard {
-  margin-top: 12px;
-  padding: 12px;
-  background: rgba(255,255,255,0.03);
-  border-radius: 10px;
-  border: 1px solid var(--border);
-}
-
-a {
-  color: var(--accent);
-}
+a { color: var(--accent); }
 
 </style>
 </head>
 
 <body>
 
-<!-- ✅ ECOSYSTEM HEADER (NEW, NON-DESTRUCTIVE) -->
-<div class="header">
+<div class="page">
 
-  <div class="brand" onclick="goHome()">
-    <span>Media</span> Tiles
-  </div>
+  <!-- ECOSYSTEM HEADER -->
+  <div class="header">
 
-  <div class="ecosystem-nav">
-    <div class="nav-btn" onclick="window.location.href='https://guyititian.github.io/media-tiles/browse.html'">
-      Library
-    </div>
+    <div class="brand-row">
 
-    <div class="nav-btn active">
-      Tools
-    </div>
-  </div>
+      <div class="brand" onclick="goHome()">
+        <span>Media</span> Tiles
+      </div>
 
-</div>
+      <div class="ecosystem-nav">
+        <div class="nav-btn" onclick="goHome()">Library</div>
+        <div class="nav-btn active">Tools</div>
+      </div>
 
-<div class="container">
-
-  <h2>GIF Motion Tool</h2>
-
-  <label>Upload File</label>
-  <input type="file" id="file">
-
-  <label>Preset</label>
-
-  <div class="presetGrid">
-
-    <div class="presetCard active" onclick="selectPreset('balanced_v1', this)">
-      <div class="presetTitle">Balanced</div>
-      <div class="presetDesc">Stable output. Clean motion, low artifacts.</div>
-    </div>
-
-    <div class="presetCard" onclick="selectPreset('fluid_motion_v1', this)">
-      <div class="presetTitle">Fluid Motion</div>
-      <div class="presetDesc">Smoother motion with stronger interpolation.</div>
-    </div>
-
-    <div class="presetCard" onclick="selectPreset('cinematic_v1', this)">
-      <div class="presetTitle">Cinematic</div>
-      <div class="presetDesc">High intensity visual motion + enhanced depth.</div>
     </div>
 
   </div>
 
-  <input type="hidden" id="preset" value="balanced_v1">
+  <!-- TOOL PANEL -->
+  <div class="container">
 
-  <button onclick="runTool()">Run Tool</button>
+    <h2>GIF Motion Tool</h2>
 
-  <div class="loader" id="loader"></div>
-  <div id="status"></div>
-  <div id="output"></div>
+    <label>Upload File</label>
+    <input type="file" id="file">
+
+    <label>Preset</label>
+
+    <div class="presetGrid">
+
+      <div class="presetCard active" onclick="selectPreset('balanced_v1', this)">
+        <div class="presetTitle">Balanced</div>
+        <div class="presetDesc">Stable output. Clean motion, low artifacts.</div>
+      </div>
+
+      <div class="presetCard" onclick="selectPreset('fluid_motion_v1', this)">
+        <div class="presetTitle">Fluid Motion</div>
+        <div class="presetDesc">Smoother motion with stronger interpolation.</div>
+      </div>
+
+      <div class="presetCard" onclick="selectPreset('cinematic_v1', this)">
+        <div class="presetTitle">Cinematic</div>
+        <div class="presetDesc">High intensity visual motion + enhanced depth.</div>
+      </div>
+
+    </div>
+
+    <input type="hidden" id="preset" value="balanced_v1">
+
+    <button onclick="runTool()">Run Tool</button>
+
+    <div class="loader" id="loader"></div>
+    <div id="status"></div>
+    <div id="output"></div>
+
+  </div>
 
 </div>
 
@@ -269,7 +307,7 @@ function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
-/* PRESET SELECTOR */
+/* PRESET SELECTOR (UNCHANGED FUNCTIONALITY) */
 function selectPreset(value, el) {
   document.getElementById("preset").value = value;
 
@@ -279,7 +317,7 @@ function selectPreset(value, el) {
   el.classList.add("active");
 }
 
-/* PIPELINE (UNCHANGED) */
+/* TOOL LOGIC (UNCHANGED) */
 async function runTool() {
   const outputEl = document.getElementById("output");
   const statusEl = document.getElementById("status");
@@ -288,7 +326,6 @@ async function runTool() {
   try {
     const file = document.getElementById("file").files[0];
     const preset = document.getElementById("preset").value;
-    const tool = "gif_motion";
 
     if (!file) {
       outputEl.innerText = "Please select a file.";
@@ -301,7 +338,7 @@ async function runTool() {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("tool", tool);
+    formData.append("tool", "gif_motion");
     formData.append("preset", preset);
 
     const res = await fetch(API_URL, {
@@ -313,7 +350,9 @@ async function runTool() {
     let data = JSON.parse(raw);
 
     const urlPart =
-      data.output_url || data?.data?.output_url || data?.url;
+      data.output_url ||
+      data?.data?.output_url ||
+      data?.url;
 
     const finalUrl = new URL(urlPart, "https://media-lab.onrender.com").href;
 
