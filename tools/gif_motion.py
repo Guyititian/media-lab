@@ -31,8 +31,12 @@ def generate_gif(input_path: str, preset_name: str):
             capture_output=True,
             text=True
         )
+
     except subprocess.TimeoutExpired:
-        raise RuntimeError("Processing timed out. Try a shorter clip or smaller file.")
+        raise RuntimeError(
+            "Processing timed out. Try a shorter clip, smaller file, or lighter preset."
+        )
+
     except subprocess.CalledProcessError as error:
         ffmpeg_error = error.stderr.strip() if error.stderr else "Unknown FFmpeg error."
         raise RuntimeError(f"FFmpeg failed: {ffmpeg_error}")
