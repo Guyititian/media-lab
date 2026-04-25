@@ -1,15 +1,22 @@
-# api/routes.py
-
 import os
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from tools.gif_motion import generate_gif
+
+from core.config import UPLOAD_DIR
 from core.presets import PRESETS
+from core.tool_schema import TOOL_DEFINITIONS
+from core.validation import validate_upload_filename, validate_upload_size
+from tools.gif_motion import generate_gif
 
 router = APIRouter()
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.get("/tools")
+def get_tools():
+    return {
+        "success": True,
+        "tools": TOOL_DEFINITIONS
+    }
 
 
 @router.post("/upload")
@@ -18,52 +25,45 @@ async def upload_file(
     tool: str = Form(...),
     preset: str = Form(...)
 ):
-    try:
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🔥 ROUTE REQUEST")
-        print(f"🔥 TOOL: {tool}")
-        print(f"🔥 PRESET: {preset}")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    input_path = None
 
-        # Validate tool
+    try:
         if tool != "gif_motion":
             raise HTTPException(status_code=400, detail=f"Unsupported tool: {tool}")
 
-        # Validate preset
         if preset not in PRESETS:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid preset: {preset}. Must be one of {list(PRESETS.keys())}"
             )
 
-        # Save upload
+        clean_filename = validate_upload_filename(file)
+        data = await file.read()
+        validate_upload_size(data)
+
         file_id = str(uuid.uuid4())
-        input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{file.filename}")
+        input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{clean_filename}")
 
-        with open(input_path, "wb") as f:
-            f.write(await file.read())
+        with open(input_path, "wb") as saved_file:
+            saved_file.write(data)
 
-        # Generate GIF
         result = generate_gif(input_path, preset)
 
-        # Normalize response (IMPORTANT: flatten structure)
         return {
             "success": True,
-            "output_url": result["output_url"]
+            "output_url": result["output_url"],
+            "preset": preset
         }
 
-    except HTTPException as he:
-        # Proper API error
-        print("❌ ROUTE ERROR:", he.detail)
-        return {
-            "success": False,
-            "error": he.detail
-        }
+    except HTTPException:
+        raise
 
-    except Exception as e:
-        # Unexpected failure
-        print("❌ ROUTE ERROR:", str(e))
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    finally:
+        if input_path and os.path.exists(input_path):
+            try:
+                os.remove(input_path)
+            except OSError:
+                pass
