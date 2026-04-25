@@ -6,7 +6,7 @@ OUTPUT_DIR = os.getenv("OUTPUT_DIR", "outputs")
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
 MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 
-FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "120"))
+FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "300"))
 
 ALLOWED_EXTENSIONS = {
     ".mp4", ".mov", ".mkv", ".webm", ".avi",
