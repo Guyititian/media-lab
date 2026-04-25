@@ -3,12 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import router
+from core.config import OUTPUT_DIR
 
-app = FastAPI()
+app = FastAPI(title="Media-Lab API")
 
-# =====================================================
-# CORS
-# =====================================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -21,15 +19,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =====================================================
-# API ROUTES
-# =====================================================
 app.include_router(router)
 
-# =====================================================
-# STATIC FILES
-# =====================================================
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 
 
 @app.get("/")
