@@ -6,6 +6,7 @@ from api.routes import router
 from core.cleanup import run_cleanup
 from core.config import OUTPUT_DIR
 from core.jobs import job_counts
+from core.redis_client import redis_status
 
 app = FastAPI(title="Media-Lab API")
 
@@ -51,5 +52,6 @@ def health():
     return {
         "success": True,
         "status": "healthy",
-        "jobs": job_counts()
+        "jobs": job_counts(),
+        "redis": redis_status()
     }
