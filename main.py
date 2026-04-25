@@ -3,40 +3,40 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import router
-from core.config import OUTPUT_DIR
 
-app = FastAPI(title="Media-Lab API")
+app = FastAPI()
 
+# =====================================================
+# CORS
+# =====================================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://guyititian.github.io",
         "https://guyititian.github.io/media-lab",
         "https://guyititian.github.io/media-tiles",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# =====================================================
+# API ROUTES
+# =====================================================
 app.include_router(router)
 
-app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
+# =====================================================
+# STATIC FILES
+# =====================================================
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 
 @app.get("/")
 def root():
-    return {
-        "status": "media-lab online",
-        "docs": "/docs"
-    }
+    return {"status": "media-lab online"}
 
 
 @app.get("/health")
 def health():
-    return {
-        "success": True,
-        "status": "healthy"
-    }
+    return {"success": True, "status": "healthy"}
