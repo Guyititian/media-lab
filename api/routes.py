@@ -3,8 +3,22 @@ import uuid
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 
-from core.config import UPLOAD_DIR
-from core.jobs import create_job, get_job, update_job, cleanup_old_jobs
+from core.cleanup import run_cleanup
+from core.config import (
+    UPLOAD_DIR,
+    OUTPUT_DIR,
+    MAX_UPLOAD_MB,
+    FFMPEG_TIMEOUT_SECONDS,
+    OUTPUT_MAX_AGE_SECONDS
+)
+from core.jobs import (
+    create_job,
+    get_job,
+    update_job,
+    cleanup_old_jobs,
+    list_jobs,
+    job_counts
+)
 from core.presets import PRESETS
 from core.tool_schema import TOOL_DEFINITIONS
 from core.validation import validate_upload_filename, validate_upload_size
@@ -26,11 +40,35 @@ def get_job_status(job_id: str):
     job = get_job(job_id)
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found. It may have expired or the service may have restarted."
+        )
 
     return {
         "success": True,
         "job": job
+    }
+
+
+@router.get("/debug/jobs")
+def debug_jobs():
+    return {
+        "success": True,
+        "counts": job_counts(),
+        "jobs": list_jobs(limit=25)
+    }
+
+
+@router.post("/debug/cleanup")
+def debug_cleanup():
+    cleanup_results = run_cleanup()
+    expired_jobs = cleanup_old_jobs()
+
+    return {
+        "success": True,
+        "cleanup": cleanup_results,
+        "expired_jobs": expired_jobs
     }
 
 
@@ -61,6 +99,7 @@ def process_gif_job(job_id: str, input_path: str, preset: str):
             except OSError:
                 pass
 
+        run_cleanup()
         cleanup_old_jobs()
 
 
@@ -103,4 +142,19 @@ async def upload_file(
         "job_id": job_id,
         "status": "queued",
         "status_url": f"/jobs/{job_id}"
+    }
+
+
+@router.get("/debug/config")
+def debug_config():
+    return {
+        "success": True,
+        "config": {
+            "upload_dir": UPLOAD_DIR,
+            "output_dir": OUTPUT_DIR,
+            "max_upload_mb": MAX_UPLOAD_MB,
+            "ffmpeg_timeout_seconds": FFMPEG_TIMEOUT_SECONDS,
+            "output_max_age_seconds": OUTPUT_MAX_AGE_SECONDS,
+            "available_presets": list(PRESETS.keys())
+        }
     }
