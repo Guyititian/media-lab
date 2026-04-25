@@ -5,3 +5,4 @@ imageio-ffmpeg
 opencv-python-headless
 numpy
 redis
+boto3
