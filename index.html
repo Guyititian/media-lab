@@ -60,7 +60,10 @@ body {
 
 .brand span { color: var(--accent); }
 
-.ecosystem-nav { display:flex; gap:10px; }
+.ecosystem-nav {
+  display:flex;
+  gap:10px;
+}
 
 .nav-btn {
   padding:6px 10px;
@@ -82,6 +85,7 @@ body {
   background: rgba(122,162,255,0.15);
   border-color: rgba(122,162,255,0.35);
   color: var(--text);
+  box-shadow: 0 10px 30px rgba(122,162,255,0.08);
 }
 
 .container {
@@ -94,7 +98,11 @@ body {
   box-shadow: var(--shadow);
 }
 
-h2 { font-size: 18px; margin: 0 0 14px 0; }
+h2 {
+  font-size: 18px;
+  margin: 0 0 14px 0;
+  letter-spacing: 0.3px;
+}
 
 label {
   display:block;
@@ -111,6 +119,7 @@ input, button {
   border:1px solid var(--border);
   background: rgba(255,255,255,0.03);
   color: var(--text);
+  outline:none;
 }
 
 button {
@@ -118,9 +127,16 @@ button {
   background: rgba(122,162,255,0.15);
   border-color: rgba(122,162,255,0.35);
   cursor:pointer;
+  transition:0.2s;
 }
 
 button:hover { transform: translateY(-2px); }
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .presetGrid {
   display:grid;
@@ -135,19 +151,48 @@ button:hover { transform: translateY(-2px); }
   border:1px solid var(--border);
   cursor:pointer;
   transition:0.25s;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
-.presetCard:hover { transform: translateY(-4px); }
+.presetCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(122,162,255,0.25);
+}
 
 .presetCard.active {
   border-color: rgba(122,162,255,0.5);
+  box-shadow: 0 0 0 1px rgba(122,162,255,0.15), 0 18px 60px rgba(0,0,0,0.55);
 }
 
-.presetTitle { font-size:14px; font-weight:700; }
-.presetDesc { font-size:12px; color: var(--muted); }
+.presetTitle {
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:4px;
+}
 
-#status { margin-top:14px; font-size:13px; }
-#output { margin-top:14px; }
+.presetDesc {
+  font-size:12px;
+  color: var(--muted);
+}
+
+#status {
+  margin-top:14px;
+  font-size:13px;
+  color: var(--muted);
+}
+
+#output {
+  margin-top:14px;
+  font-size:14px;
+}
+
+.resultCard {
+  margin-top:12px;
+  padding:14px;
+  border-radius:14px;
+  background: rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+}
 
 .loader {
   margin-top:12px;
@@ -160,7 +205,9 @@ button:hover { transform: translateY(-2px); }
   display:none;
 }
 
-@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
 
 a { color: var(--accent); }
 </style>
@@ -170,127 +217,209 @@ a { color: var(--accent); }
 
 <div class="page">
 
-<div class="header">
-<div class="brand-row">
+  <div class="header">
+    <div class="brand-row">
+      <div class="brand" onclick="goHome()">
+        <span>Media</span> Tiles
+      </div>
 
-<div class="brand" onclick="goHome()">
-<span>Media</span> Tiles
-</div>
+      <div class="ecosystem-nav">
+        <div class="nav-btn"
+             onclick="window.location.href='https://guyititian.github.io/media-tiles/browse.html'">
+          Library
+        </div>
 
-<div class="ecosystem-nav">
-<div class="nav-btn" onclick="window.location.href='https://guyititian.github.io/media-tiles/browse.html'">Library</div>
-<div class="nav-btn active">Tools</div>
-</div>
+        <div class="nav-btn active"
+             onclick="window.location.href='https://guyititian.github.io/media-lab/'">
+          Tools
+        </div>
+      </div>
+    </div>
+  </div>
 
-</div>
-</div>
+  <div class="container">
 
-<div class="container">
+    <h2>GIF Motion Tool</h2>
 
-<h2>GIF Motion Tool</h2>
+    <label>Upload File</label>
+    <input type="file" id="file" accept=".mp4,.mov,.mkv,.webm,.avi,.gif,.png,.jpg,.jpeg,.webp">
 
-<label>Upload File</label>
-<input type="file" id="file">
+    <label>Preset</label>
 
-<label>Preset</label>
+    <div class="presetGrid" id="presetGrid">
+      <div class="presetCard active">
+        <div class="presetTitle">Loading presets...</div>
+        <div class="presetDesc">Connecting to Media-Lab backend.</div>
+      </div>
+    </div>
 
-<div class="presetGrid" id="presetGrid"></div>
+    <input type="hidden" id="preset" value="">
 
-<input type="hidden" id="preset">
+    <button id="runButton" onclick="runTool()" disabled>Run Tool</button>
 
-<button onclick="runTool()">Run Tool</button>
+    <div class="loader" id="loader"></div>
+    <div id="status"></div>
+    <div id="output"></div>
 
-<div class="loader" id="loader"></div>
-<div id="status"></div>
-<div id="output"></div>
+  </div>
 
-</div>
 </div>
 
 <script>
-
 const API_BASE = "https://media-lab.onrender.com";
+const API_UPLOAD_URL = API_BASE + "/upload";
+const API_TOOLS_URL = API_BASE + "/tools";
 
 function goHome() {
   window.location.href = "https://guyititian.github.io/media-tiles/";
 }
 
-let currentPreset = null;
+function selectPreset(value, el) {
+  document.getElementById("preset").value = value;
+
+  document.querySelectorAll(".presetCard")
+    .forEach(c => c.classList.remove("active"));
+
+  el.classList.add("active");
+}
 
 async function loadPresets() {
-  const res = await fetch(API_BASE + "/tools");
-  const data = await res.json();
-
-  const presets = data.tools.gif_motion.presets;
   const grid = document.getElementById("presetGrid");
+  const runButton = document.getElementById("runButton");
+  const statusEl = document.getElementById("status");
 
-  grid.innerHTML = "";
+  try {
+    const res = await fetch(API_TOOLS_URL, { cache: "no-store" });
+    const data = await res.json();
 
-  Object.entries(presets).forEach(([key, p], index) => {
-    const card = document.createElement("div");
-    card.className = "presetCard";
-    if (index === 0) {
-      card.classList.add("active");
-      currentPreset = key;
-      document.getElementById("preset").value = key;
+    if (!res.ok || !data.success || !data.tools || !data.tools.gif_motion) {
+      throw new Error(data.detail || "Could not load GIF Motion presets.");
     }
 
-    card.innerHTML = `
-      <div class="presetTitle">${p.label}</div>
-      <div class="presetDesc">${p.description}</div>
+    const presets = data.tools.gif_motion.presets || {};
+    const entries = Object.entries(presets);
+
+    if (entries.length === 0) {
+      throw new Error("No presets were returned by the backend.");
+    }
+
+    grid.innerHTML = "";
+
+    entries.forEach(([key, preset], index) => {
+      const card = document.createElement("div");
+      card.className = "presetCard";
+
+      if (index === 0) {
+        card.classList.add("active");
+        document.getElementById("preset").value = key;
+      }
+
+      card.onclick = function() {
+        selectPreset(key, card);
+      };
+
+      const title = document.createElement("div");
+      title.className = "presetTitle";
+      title.textContent = preset.label || key;
+
+      const desc = document.createElement("div");
+      desc.className = "presetDesc";
+      desc.textContent = preset.description || "";
+
+      card.appendChild(title);
+      card.appendChild(desc);
+      grid.appendChild(card);
+    });
+
+    runButton.disabled = false;
+    statusEl.innerText = "";
+
+  } catch (err) {
+    grid.innerHTML = `
+      <div class="presetCard active">
+        <div class="presetTitle">Presets unavailable</div>
+        <div class="presetDesc">${err.message}</div>
+      </div>
     `;
-
-    card.onclick = () => {
-      document.querySelectorAll(".presetCard").forEach(c => c.classList.remove("active"));
-      card.classList.add("active");
-      currentPreset = key;
-      document.getElementById("preset").value = key;
-    };
-
-    grid.appendChild(card);
-  });
+    runButton.disabled = true;
+    statusEl.innerText = "Unable to load presets.";
+  }
 }
 
 async function runTool() {
-  const file = document.getElementById("file").files[0];
-  if (!file) return alert("Select a file");
-
+  const outputEl = document.getElementById("output");
+  const statusEl = document.getElementById("status");
   const loader = document.getElementById("loader");
-  const status = document.getElementById("status");
-  const output = document.getElementById("output");
-
-  loader.style.display = "block";
-  status.innerText = "Processing...";
-  output.innerHTML = "";
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("tool", "gif_motion");
-  form.append("preset", currentPreset);
+  const runButton = document.getElementById("runButton");
 
   try {
-    const res = await fetch(API_BASE + "/upload", { method: "POST", body: form });
-    const data = await res.json();
+    const file = document.getElementById("file").files[0];
+    const preset = document.getElementById("preset").value;
 
-    const url = API_BASE + data.output_url;
+    if (!file) {
+      outputEl.innerText = "Please select a file.";
+      return;
+    }
+
+    if (!preset) {
+      outputEl.innerText = "Please select a preset.";
+      return;
+    }
+
+    outputEl.innerHTML = "";
+    statusEl.innerText = "Processing...";
+    loader.style.display = "block";
+    runButton.disabled = true;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tool", "gif_motion");
+    formData.append("preset", preset);
+
+    const res = await fetch(API_UPLOAD_URL, {
+      method: "POST",
+      body: formData
+    });
+
+    let data = {};
+    const raw = await res.text();
+
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      throw new Error(raw || "Backend returned an unreadable response.");
+    }
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.detail || "Processing failed.");
+    }
+
+    if (!data.output_url) {
+      throw new Error("Processing completed but no output URL was returned.");
+    }
+
+    const finalUrl = new URL(data.output_url, API_BASE).href;
 
     loader.style.display = "none";
-    status.innerText = "Complete ✔";
+    statusEl.innerText = "Complete ✔";
 
-    output.innerHTML = `
+    outputEl.innerHTML = `
       <div class="resultCard">
-        <a href="${url}" target="_blank">Download GIF</a>
+        <div>Output ready</div>
+        <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">Download GIF</a>
       </div>
     `;
 
-  } catch (e) {
+  } catch (err) {
     loader.style.display = "none";
-    status.innerText = "Error";
+    statusEl.innerText = "";
+    outputEl.innerText = "ERROR: " + err.message;
+  } finally {
+    runButton.disabled = false;
   }
 }
 
 loadPresets();
-
 </script>
 
 </body>
