@@ -1,12 +1,9 @@
-# tools/gif_motion.py
-
+import os
 import subprocess
 import uuid
-import os
-from core.presets import get_preset
 
-OUTPUT_DIR = "outputs"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+from core.config import OUTPUT_DIR, FFMPEG_TIMEOUT_SECONDS
+from core.presets import get_preset
 
 
 def generate_gif(input_path: str, preset_name: str):
@@ -17,17 +14,31 @@ def generate_gif(input_path: str, preset_name: str):
 
     cmd = [
         "ffmpeg",
+        "-hide_banner",
+        "-loglevel", "error",
         "-y",
         "-i", input_path,
-
-        # IMPORTANT FIX: use "vf", not "filter"
         "-vf", preset["vf"],
-
         "-loop", "0",
         output_path
     ]
 
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(
+            cmd,
+            check=True,
+            timeout=FFMPEG_TIMEOUT_SECONDS,
+            capture_output=True,
+            text=True
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("Processing timed out. Try a shorter clip or smaller file.")
+    except subprocess.CalledProcessError as error:
+        ffmpeg_error = error.stderr.strip() if error.stderr else "Unknown FFmpeg error."
+        raise RuntimeError(f"FFmpeg failed: {ffmpeg_error}")
+
+    if not os.path.exists(output_path):
+        raise RuntimeError("Processing failed: output file was not created.")
 
     return {
         "output_path": output_path,
