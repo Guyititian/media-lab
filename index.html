@@ -25,7 +25,14 @@ body {
   background: radial-gradient(1200px 800px at 50% 10%, #141b2a 0%, var(--bg) 60%);
 }
 
-.page { padding: 28px; }
+/* PAGE WRAP */
+.page {
+  padding: 28px;
+}
+
+/* =========================
+   ECOSYSTEM HEADER
+========================= */
 
 .header {
   max-width: 1100px;
@@ -37,6 +44,7 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* BRAND ROW */
 .brand-row {
   display:flex;
   align-items:center;
@@ -48,6 +56,7 @@ body {
   margin-bottom: 14px;
 }
 
+/* BRAND */
 .brand {
   font-size: 30px;
   font-weight: 900;
@@ -58,8 +67,11 @@ body {
   gap:10px;
 }
 
-.brand span { color: var(--accent); }
+.brand span {
+  color: var(--accent);
+}
 
+/* NAV SYSTEM (NOW SYMMETRICAL) */
 .ecosystem-nav {
   display:flex;
   gap:10px;
@@ -87,6 +99,10 @@ body {
   color: var(--text);
   box-shadow: 0 10px 30px rgba(122,162,255,0.08);
 }
+
+/* =========================
+   TOOL PANEL
+========================= */
 
 .container {
   max-width: 1100px;
@@ -122,6 +138,7 @@ input, button {
   outline:none;
 }
 
+/* PRIMARY BUTTON */
 button {
   margin-top:16px;
   background: rgba(122,162,255,0.15);
@@ -130,14 +147,17 @@ button {
   transition:0.2s;
 }
 
-button:hover { transform: translateY(-2px); }
+button:hover {
+  transform: translateY(-2px);
+}
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
   transform: none;
 }
 
+/* PRESETS */
 .presetGrid {
   display:grid;
   gap:12px;
@@ -175,6 +195,7 @@ button:disabled {
   color: var(--muted);
 }
 
+/* STATUS */
 #status {
   margin-top:14px;
   font-size:13px;
@@ -194,6 +215,7 @@ button:disabled {
   border:1px solid var(--border);
 }
 
+/* LOADER */
 .loader {
   margin-top:12px;
   width:18px;
@@ -210,6 +232,7 @@ button:disabled {
 }
 
 a { color: var(--accent); }
+
 </style>
 </head>
 
@@ -218,12 +241,16 @@ a { color: var(--accent); }
 <div class="page">
 
   <div class="header">
+
     <div class="brand-row">
+
       <div class="brand" onclick="goHome()">
         <span>Media</span> Tiles
       </div>
 
+      <!-- FIXED NAV (SYMMETRICAL + CORRECT ROUTING) -->
       <div class="ecosystem-nav">
+
         <div class="nav-btn"
              onclick="window.location.href='https://guyititian.github.io/media-tiles/browse.html'">
           Library
@@ -233,8 +260,11 @@ a { color: var(--accent); }
              onclick="window.location.href='https://guyititian.github.io/media-lab/'">
           Tools
         </div>
+
       </div>
+
     </div>
+
   </div>
 
   <div class="container">
@@ -242,15 +272,21 @@ a { color: var(--accent); }
     <h2>GIF Motion Tool</h2>
 
     <label>Upload File</label>
-    <input type="file" id="file" accept=".mp4,.mov,.mkv,.webm,.avi,.gif,.png,.jpg,.jpeg,.webp">
+    <input
+      type="file"
+      id="file"
+      accept=".mp4,.mov,.mkv,.webm,.avi,.gif,.png,.jpg,.jpeg,.webp"
+    >
 
     <label>Preset</label>
 
     <div class="presetGrid" id="presetGrid">
+
       <div class="presetCard active">
         <div class="presetTitle">Loading presets...</div>
         <div class="presetDesc">Connecting to Media-Lab backend.</div>
       </div>
+
     </div>
 
     <input type="hidden" id="preset" value="">
@@ -346,6 +382,87 @@ async function loadPresets() {
   }
 }
 
+async function pollJob(jobId) {
+  const outputEl = document.getElementById("output");
+  const statusEl = document.getElementById("status");
+  const loader = document.getElementById("loader");
+  const runButton = document.getElementById("runButton");
+
+  const maxAttempts = 240;
+  let attempts = 0;
+
+  const interval = setInterval(async () => {
+    attempts++;
+
+    try {
+      const res = await fetch(`${API_BASE}/jobs/${jobId}`, { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.detail || "Could not read job status.");
+      }
+
+      const job = data.job;
+
+      if (job.status === "queued") {
+        statusEl.innerText = "Queued...";
+      }
+
+      if (job.status === "processing") {
+        statusEl.innerText = "Processing...";
+      }
+
+      if (job.status === "complete") {
+        clearInterval(interval);
+
+        loader.style.display = "none";
+        runButton.disabled = false;
+        statusEl.innerText = "Complete ✔";
+
+        if (!job.output_url) {
+          outputEl.innerText = "ERROR: Job completed but no output URL was returned.";
+          return;
+        }
+
+        const finalUrl = new URL(job.output_url, API_BASE).href;
+
+        outputEl.innerHTML = `
+          <div class="resultCard">
+            <div>Output ready</div>
+            <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">Download GIF</a>
+          </div>
+        `;
+      }
+
+      if (job.status === "error") {
+        clearInterval(interval);
+
+        loader.style.display = "none";
+        runButton.disabled = false;
+        statusEl.innerText = "";
+        outputEl.innerText = "ERROR: " + (job.error || "Processing failed.");
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+
+        loader.style.display = "none";
+        runButton.disabled = false;
+        statusEl.innerText = "";
+        outputEl.innerText = "ERROR: Job status timed out.";
+      }
+
+    } catch (err) {
+      clearInterval(interval);
+
+      loader.style.display = "none";
+      runButton.disabled = false;
+      statusEl.innerText = "";
+      outputEl.innerText = "ERROR: " + err.message;
+    }
+  }, 2000);
+}
+
 async function runTool() {
   const outputEl = document.getElementById("output");
   const statusEl = document.getElementById("status");
@@ -367,7 +484,7 @@ async function runTool() {
     }
 
     outputEl.innerHTML = "";
-    statusEl.innerText = "Processing...";
+    statusEl.innerText = "Uploading...";
     loader.style.display = "block";
     runButton.disabled = true;
 
@@ -381,41 +498,20 @@ async function runTool() {
       body: formData
     });
 
-    let data = {};
-    const raw = await res.text();
+    const data = await res.json();
 
-    try {
-      data = raw ? JSON.parse(raw) : {};
-    } catch {
-      throw new Error(raw || "Backend returned an unreadable response.");
+    if (!res.ok || !data.success || !data.job_id) {
+      throw new Error(data.detail || data.error || "Upload failed.");
     }
 
-    if (!res.ok || !data.success) {
-      throw new Error(data.detail || "Processing failed.");
-    }
-
-    if (!data.output_url) {
-      throw new Error("Processing completed but no output URL was returned.");
-    }
-
-    const finalUrl = new URL(data.output_url, API_BASE).href;
-
-    loader.style.display = "none";
-    statusEl.innerText = "Complete ✔";
-
-    outputEl.innerHTML = `
-      <div class="resultCard">
-        <div>Output ready</div>
-        <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">Download GIF</a>
-      </div>
-    `;
+    statusEl.innerText = "Queued...";
+    pollJob(data.job_id);
 
   } catch (err) {
     loader.style.display = "none";
+    runButton.disabled = false;
     statusEl.innerText = "";
     outputEl.innerText = "ERROR: " + err.message;
-  } finally {
-    runButton.disabled = false;
   }
 }
 
