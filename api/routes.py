@@ -20,6 +20,7 @@ from core.jobs import (
     job_counts
 )
 from core.presets import PRESETS
+from core.redis_client import redis_status
 from core.tool_schema import TOOL_DEFINITIONS
 from core.validation import validate_upload_filename, validate_upload_size
 from tools.gif_motion import generate_gif
@@ -57,6 +58,29 @@ def debug_jobs():
         "success": True,
         "counts": job_counts(),
         "jobs": list_jobs(limit=25)
+    }
+
+
+@router.get("/debug/redis")
+def debug_redis():
+    return {
+        "success": True,
+        "redis": redis_status()
+    }
+
+
+@router.get("/debug/config")
+def debug_config():
+    return {
+        "success": True,
+        "config": {
+            "upload_dir": UPLOAD_DIR,
+            "output_dir": OUTPUT_DIR,
+            "max_upload_mb": MAX_UPLOAD_MB,
+            "ffmpeg_timeout_seconds": FFMPEG_TIMEOUT_SECONDS,
+            "output_max_age_seconds": OUTPUT_MAX_AGE_SECONDS,
+            "available_presets": list(PRESETS.keys())
+        }
     }
 
 
@@ -142,19 +166,4 @@ async def upload_file(
         "job_id": job_id,
         "status": "queued",
         "status_url": f"/jobs/{job_id}"
-    }
-
-
-@router.get("/debug/config")
-def debug_config():
-    return {
-        "success": True,
-        "config": {
-            "upload_dir": UPLOAD_DIR,
-            "output_dir": OUTPUT_DIR,
-            "max_upload_mb": MAX_UPLOAD_MB,
-            "ffmpeg_timeout_seconds": FFMPEG_TIMEOUT_SECONDS,
-            "output_max_age_seconds": OUTPUT_MAX_AGE_SECONDS,
-            "available_presets": list(PRESETS.keys())
-        }
     }
