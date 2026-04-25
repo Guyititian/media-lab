@@ -20,6 +20,7 @@ from core.jobs import (
     job_counts
 )
 from core.presets import PRESETS
+from core.r2_storage import r2_status
 from core.redis_client import redis_status
 from core.tool_schema import TOOL_DEFINITIONS
 from core.validation import validate_upload_filename, validate_upload_size
@@ -66,6 +67,14 @@ def debug_redis():
     return {
         "success": True,
         "redis": redis_status()
+    }
+
+
+@router.get("/debug/r2")
+def debug_r2():
+    return {
+        "success": True,
+        "r2": r2_status()
     }
 
 
