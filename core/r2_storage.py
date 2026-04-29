@@ -156,3 +156,67 @@ def upload_file_to_r2(
         "public_url": build_public_url(object_key),
         "content_type": final_content_type
     }
+
+
+def upload_bytes_to_r2(
+    data: bytes,
+    object_key: str,
+    content_type: str = "application/octet-stream"
+) -> Dict:
+    if not r2_configured():
+        raise RuntimeError("R2 is not configured.")
+
+    if not data:
+        raise RuntimeError("No data provided for R2 upload.")
+
+    client = get_r2_client()
+
+    client.put_object(
+        Bucket=R2_BUCKET_NAME,
+        Key=object_key,
+        Body=data,
+        ContentType=content_type
+    )
+
+    return {
+        "object_key": object_key,
+        "public_url": build_public_url(object_key),
+        "content_type": content_type
+    }
+
+
+def download_file_from_r2(object_key: str, local_path: str) -> Dict:
+    if not r2_configured():
+        raise RuntimeError("R2 is not configured.")
+
+    client = get_r2_client()
+
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
+    client.download_file(
+        R2_BUCKET_NAME,
+        object_key,
+        local_path
+    )
+
+    return {
+        "object_key": object_key,
+        "local_path": local_path
+    }
+
+
+def delete_object_from_r2(object_key: str) -> Dict:
+    if not r2_configured():
+        raise RuntimeError("R2 is not configured.")
+
+    client = get_r2_client()
+
+    client.delete_object(
+        Bucket=R2_BUCKET_NAME,
+        Key=object_key
+    )
+
+    return {
+        "object_key": object_key,
+        "deleted": True
+    }
