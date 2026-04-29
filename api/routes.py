@@ -20,7 +20,7 @@ from core.jobs import (
     job_counts
 )
 from core.presets import PRESETS
-from core.r2_storage import r2_status
+from core.r2_storage import r2_status, upload_file_to_r2, r2_config_summary
 from core.redis_client import redis_status
 from core.tool_schema import TOOL_DEFINITIONS
 from core.validation import validate_upload_filename, validate_upload_size
@@ -88,7 +88,8 @@ def debug_config():
             "max_upload_mb": MAX_UPLOAD_MB,
             "ffmpeg_timeout_seconds": FFMPEG_TIMEOUT_SECONDS,
             "output_max_age_seconds": OUTPUT_MAX_AGE_SECONDS,
-            "available_presets": list(PRESETS.keys())
+            "available_presets": list(PRESETS.keys()),
+            "r2": r2_config_summary()
         }
     }
 
@@ -106,17 +107,50 @@ def debug_cleanup():
 
 
 def process_gif_job(job_id: str, input_path: str, preset: str):
+    local_output_path = None
+
     try:
         update_job(job_id, status="processing")
 
         result = generate_gif(input_path, preset)
 
-        update_job(
-            job_id,
-            status="complete",
-            output_url=result["output_url"],
-            error=None
-        )
+        local_output_path = result["output_path"]
+        local_output_url = result["output_url"]
+
+        output_filename = os.path.basename(local_output_path)
+        r2_object_key = f"outputs/{output_filename}"
+
+        try:
+            r2_result = upload_file_to_r2(
+                local_path=local_output_path,
+                object_key=r2_object_key,
+                content_type="image/gif"
+            )
+
+            update_job(
+                job_id,
+                status="complete",
+                output_url=r2_result["public_url"],
+                output_storage="r2",
+                output_key=r2_result["object_key"],
+                error=None
+            )
+
+            try:
+                os.remove(local_output_path)
+            except OSError:
+                pass
+
+        except Exception as r2_error:
+            update_job(
+                job_id,
+                status="complete",
+                output_url=local_output_url,
+                output_storage="local_fallback",
+                output_key=None,
+                storage_warning=f"R2 upload failed, using local fallback: {str(r2_error)}",
+                error=None
+            )
 
     except Exception as error:
         update_job(
