@@ -1,3 +1,4 @@
+import mimetypes
 import os
 import uuid
 
@@ -20,7 +21,14 @@ from core.jobs import (
     job_counts
 )
 from core.presets import PRESETS
-from core.r2_storage import r2_status, upload_file_to_r2, r2_config_summary
+from core.r2_storage import (
+    r2_status,
+    upload_file_to_r2,
+    upload_bytes_to_r2,
+    download_file_from_r2,
+    delete_object_from_r2,
+    r2_config_summary
+)
 from core.redis_client import redis_status
 from core.tool_schema import TOOL_DEFINITIONS
 from core.validation import validate_upload_filename, validate_upload_size
@@ -106,13 +114,45 @@ def debug_cleanup():
     }
 
 
-def process_gif_job(job_id: str, input_path: str, preset: str):
+def get_content_type(filename: str) -> str:
+    content_type, _ = mimetypes.guess_type(filename)
+
+    if content_type:
+        return content_type
+
+    return "application/octet-stream"
+
+
+def process_gif_job(
+    job_id: str,
+    preset: str,
+    input_object_key: str = None,
+    local_input_path: str = None
+):
+    working_input_path = local_input_path
     local_output_path = None
 
     try:
         update_job(job_id, status="processing")
 
-        result = generate_gif(input_path, preset)
+        if input_object_key:
+            download_name = f"{job_id}_{os.path.basename(input_object_key)}"
+            working_input_path = os.path.join(UPLOAD_DIR, download_name)
+
+            download_file_from_r2(
+                object_key=input_object_key,
+                local_path=working_input_path
+            )
+
+            update_job(
+                job_id,
+                input_downloaded=True
+            )
+
+        if not working_input_path or not os.path.exists(working_input_path):
+            raise RuntimeError("Input file was not available for processing.")
+
+        result = generate_gif(working_input_path, preset)
 
         local_output_path = result["output_path"]
         local_output_url = result["output_url"]
@@ -148,7 +188,7 @@ def process_gif_job(job_id: str, input_path: str, preset: str):
                 output_url=local_output_url,
                 output_storage="local_fallback",
                 output_key=None,
-                storage_warning=f"R2 upload failed, using local fallback: {str(r2_error)}",
+                storage_warning=f"R2 output upload failed, using local fallback: {str(r2_error)}",
                 error=None
             )
 
@@ -160,11 +200,24 @@ def process_gif_job(job_id: str, input_path: str, preset: str):
         )
 
     finally:
-        if input_path and os.path.exists(input_path):
+        if working_input_path and os.path.exists(working_input_path):
             try:
-                os.remove(input_path)
+                os.remove(working_input_path)
             except OSError:
                 pass
+
+        if input_object_key:
+            try:
+                delete_object_from_r2(input_object_key)
+                update_job(
+                    job_id,
+                    input_deleted=True
+                )
+            except Exception as delete_error:
+                update_job(
+                    job_id,
+                    input_delete_warning=str(delete_error)
+                )
 
         run_cleanup()
         cleanup_old_jobs()
@@ -190,19 +243,51 @@ async def upload_file(
     data = await file.read()
     validate_upload_size(data)
 
-    file_id = str(uuid.uuid4())
-    input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{clean_filename}")
-
-    with open(input_path, "wb") as saved_file:
-        saved_file.write(data)
-
     job_id = create_job(
         tool=tool,
         preset=preset,
         filename=clean_filename
     )
 
-    background_tasks.add_task(process_gif_job, job_id, input_path, preset)
+    input_object_key = None
+    local_input_path = None
+
+    try:
+        input_object_key = f"inputs/{job_id}/{clean_filename}"
+
+        upload_bytes_to_r2(
+            data=data,
+            object_key=input_object_key,
+            content_type=get_content_type(clean_filename)
+        )
+
+        update_job(
+            job_id,
+            input_storage="r2",
+            input_key=input_object_key
+        )
+
+    except Exception as r2_error:
+        file_id = str(uuid.uuid4())
+        local_input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{clean_filename}")
+
+        with open(local_input_path, "wb") as saved_file:
+            saved_file.write(data)
+
+        update_job(
+            job_id,
+            input_storage="local_fallback",
+            input_key=None,
+            storage_warning=f"R2 input upload failed, using local fallback: {str(r2_error)}"
+        )
+
+    background_tasks.add_task(
+        process_gif_job,
+        job_id,
+        preset,
+        input_object_key,
+        local_input_path
+    )
 
     return {
         "success": True,
