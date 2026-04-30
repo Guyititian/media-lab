@@ -25,14 +25,9 @@ body {
   background: radial-gradient(1200px 800px at 50% 10%, #141b2a 0%, var(--bg) 60%);
 }
 
-/* PAGE WRAP */
 .page {
   padding: 28px;
 }
-
-/* =========================
-   ECOSYSTEM HEADER
-========================= */
 
 .header {
   max-width: 1100px;
@@ -44,7 +39,6 @@ body {
   box-shadow: var(--shadow);
 }
 
-/* BRAND ROW */
 .brand-row {
   display:flex;
   align-items:center;
@@ -57,9 +51,8 @@ body {
   margin-bottom: 14px;
 }
 
-/* BRAND */
 .brand {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 900;
   letter-spacing: 0.5px;
   cursor: pointer;
@@ -72,7 +65,6 @@ body {
   color: var(--accent);
 }
 
-/* NAV */
 .ecosystem-nav {
   display:flex;
   gap:10px;
@@ -106,9 +98,34 @@ body {
   box-shadow: 0 10px 30px rgba(122,162,255,0.08);
 }
 
-/* =========================
-   TOOL PANEL
-========================= */
+.section-title {
+  text-align:center;
+  margin: 28px 0 26px 0;
+}
+
+.section-title h1 {
+  font-size: 42px;
+  letter-spacing: 1px;
+  margin: 0;
+  font-weight: 800;
+}
+
+.section-title h1 span {
+  color: var(--accent);
+}
+
+.section-title p {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height:1.5;
+}
+
+.divider {
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  margin: 28px 0;
+}
 
 .container {
   max-width: 1100px;
@@ -144,7 +161,6 @@ input, button {
   outline:none;
 }
 
-/* PRIMARY BUTTON */
 button {
   margin-top:16px;
   background: rgba(122,162,255,0.15);
@@ -163,7 +179,6 @@ button:disabled {
   transform: none;
 }
 
-/* PRESETS */
 .presetGrid {
   display:grid;
   gap:12px;
@@ -201,7 +216,6 @@ button:disabled {
   color: var(--muted);
 }
 
-/* STATUS */
 #status {
   margin-top:14px;
   font-size:13px;
@@ -221,7 +235,6 @@ button:disabled {
   border:1px solid var(--border);
 }
 
-/* LOADER */
 .loader {
   margin-top:12px;
   width:18px;
@@ -256,8 +269,11 @@ a { color: var(--accent); }
   .brand {
     font-size:28px;
   }
-}
 
+  .section-title h1 {
+    font-size:34px;
+  }
+}
 </style>
 </head>
 
@@ -292,6 +308,11 @@ a { color: var(--accent); }
 
       </div>
 
+    </div>
+
+    <div class="section-title">
+      <h1><span>Media</span> Lab</h1>
+      <p>Upload media, process files, and generate enhanced outputs.</p>
     </div>
 
   </div>
