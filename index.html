@@ -49,6 +49,7 @@ body {
   display:flex;
   align-items:center;
   justify-content:space-between;
+  gap:16px;
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255,255,255,0.02);
@@ -71,10 +72,12 @@ body {
   color: var(--accent);
 }
 
-/* NAV SYSTEM (NOW SYMMETRICAL) */
+/* NAV */
 .ecosystem-nav {
   display:flex;
   gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
 }
 
 .nav-btn {
@@ -86,11 +89,14 @@ body {
   color: var(--muted);
   cursor:pointer;
   transition:0.2s;
+  text-decoration:none;
+  display:inline-block;
 }
 
 .nav-btn:hover {
   transform: translateY(-2px);
   color: var(--text);
+  border-color: rgba(122,162,255,0.25);
 }
 
 .nav-btn.active {
@@ -233,6 +239,25 @@ button:disabled {
 
 a { color: var(--accent); }
 
+@media (max-width: 720px) {
+  .page {
+    padding: 20px;
+  }
+
+  .brand-row {
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .ecosystem-nav {
+    justify-content:flex-start;
+  }
+
+  .brand {
+    font-size:28px;
+  }
+}
+
 </style>
 </head>
 
@@ -248,18 +273,22 @@ a { color: var(--accent); }
         <span>Media</span> Tiles
       </div>
 
-      <!-- FIXED NAV (SYMMETRICAL + CORRECT ROUTING) -->
       <div class="ecosystem-nav">
 
-        <div class="nav-btn"
-             onclick="window.location.href='https://guyititian.github.io/media-tiles/browse.html'">
+        <a class="nav-btn"
+           href="https://guyititian.github.io/media-tiles/browse.html">
           Library
-        </div>
+        </a>
 
-        <div class="nav-btn active"
-             onclick="window.location.href='https://guyititian.github.io/media-lab/'">
+        <a class="nav-btn"
+           href="https://guyititian.github.io/media-tiles/builds.html">
+          Builds
+        </a>
+
+        <a class="nav-btn active"
+           href="https://guyititian.github.io/media-lab/">
           Tools
-        </div>
+        </a>
 
       </div>
 
